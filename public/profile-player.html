@@ -561,6 +561,11 @@
                 max-width: 100%;
             }
         }
+
+        /* Upload + preview pairs: same height, aligned side by side */
+        .player-upload, .player-preview { display: flex; flex-direction: column; }
+        .player-upload > .pp-uploader,
+        .player-preview > .pp-preview { flex: 1 1 auto; min-height: 280px; }
         .pp-preview-actions { display: flex; gap: 6px; flex: 0 0 auto; }
         .pp-preview-actions .btn { padding: .3rem .6rem; border-radius: 8px; }
 
@@ -716,6 +721,7 @@
                 <label class="form-label">Contact No.:</label>
                 <input type="number" class="form-control" id="contact" name="contact" required>
             </div>
+            <div class="w-100"></div>
             <div class="col-md-6 player-upload">
                 <label class="form-label" for="adhaarupload">Aadhaar card</label>
                 <div class="pp-uploader">
