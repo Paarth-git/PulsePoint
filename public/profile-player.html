@@ -653,13 +653,7 @@
             <input type="hidden" id="removePic2" name="removePic2" value="0">
             <input type="hidden" name="recordType" value="player">
 
-            <div class="col-12">
-                <div class="d-flex align-items-center mb-1">
-                    <label for="emailid" class="form-label mb-0">Email ID:</label>
-                    <button type="button" class="btn btn-primary btn-sm ms-2" id="search">Search</button>
-                </div>
-                <input type="email" class="form-control" id="emailid" name="emailid" required>
-            </div>
+            <input type="hidden" id="emailid" name="emailid">
             <div class="col-md-6">
                 <label for="address" class="form-label">Address:</label>
                 <input type="text" class="form-control" id="address" name="address" required>
@@ -690,9 +684,21 @@
                 <label for="inputZip" class="form-label">ZIP:</label>
                 <input type="text" class="form-control" id="inputZip" name="inputZip">
             </div>
-            <div class="col-md-6">
-                <label class="form-label">Games You Play:</label>
-                <input type="text" class="form-control" id="games" name="games" required>
+            <div class="col-12">
+                <label class="form-label">Sports You Play:</label>
+                <div class="input-group">
+                    <select class="form-select" id="sportPicker" aria-label="Select a sport">
+                        <option value="">Select a sport</option>
+                        <option>Athletics</option><option>Badminton</option><option>Basketball</option>
+                        <option>Boxing</option><option>Chess</option><option>Cricket</option><option>Cycling</option>
+                        <option>Football</option><option>Golf</option><option>Hockey</option><option>Kabaddi</option>
+                        <option>Kho Kho</option><option>Squash</option><option>Swimming</option><option>Table Tennis</option>
+                        <option>Tennis</option><option>Volleyball</option><option>Wrestling</option>
+                    </select>
+                    <button type="button" class="btn btn-outline-primary" id="addSport">ADD</button>
+                </div>
+                <div class="d-flex flex-wrap gap-2 mt-2" id="selectedSports"></div>
+                <input type="hidden" id="games" name="games" required>
             </div>
             <div class="col-md-6">
                 <label class="form-label">Contact No.:</label>
@@ -963,103 +969,63 @@
         $(document).ready(function () {
             var detailsForm = document.querySelector('form[action="/do_player-details"]');
             var detailsStatus = $("#detailsStatus");
+            var selectedSports = [];
             function showDetailsStatus(message, success) {
                 detailsStatus.text(message)
                     .removeClass("success error")
                     .addClass(success ? "success" : "error");
             }
-
-            $("#emailid").blur(function () {
-                let email = $(this).val().trim();
-                let regex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
-                if (email === "") {
-                    showDetailsStatus("Please enter your email address.", false);
-
-                }
-                else if (regex.test(email) == false) {
-                    showDetailsStatus("Please enter a valid email address.", false);
-
-                }
-
-
-
-
-
-
-                // $("#register").click(function () {
-                //          let obj = {
-                //         type: "get",
-                //         url: "/do_registration",
-                //         data: {
-                //             emailid: $("#emailid").val(),
-                //             orgname: $("#orgname").val(),
-                //             regnumber: $("#regnumber").val(),
-                //             address: $("#address").val(),
-                //             sports: $("#sports").val(),
-                //             website: $("#website").val(),
-                //             insta: $("#insta").val(),
-                //             head: $("#head").val(),
-                //             contact: $("#contact").val(),
-
-                //         }
-                //     }
-                //     $.ajax(obj).then(function (response) {
-                //         alert(response);
-                //     }).fail(function (err) {
-                //         alert(err);
-                //     })
-                // })
+            function renderSports() {
+                $("#games").val(selectedSports.join(", "));
+                $("#selectedSports").html(selectedSports.map(function (sport) {
+                    return '<span class="badge text-bg-primary">' + $('<div>').text(sport).html() + '</span>';
+                }).join(""));
+            }
+            $("#addSport").click(function () {
+                var sport = $("#sportPicker").val();
+                if (sport && selectedSports.indexOf(sport) === -1) selectedSports.push(sport);
+                $("#sportPicker").val("");
+                renderSports();
             });
 
-            $("#search").click(function () {
+            var email = "";
+            try { email = localStorage.getItem("loggedInUserEmail") || ""; } catch (e) { }
+            $("#emailid").val(email);
+            if (!email) {
+                showDetailsStatus("Please sign in to manage your player details.", false);
+                return;
+            }
 
-                let obj = {
-                    type: "get",
-                    url: "/get-player-details",
-                    data: {
-                        emailid: $("#emailid").val()
-                        //txtPwd:$("#txtPwd").val()
-                    }
+            $.get("/get-player-details", { emailid: email }).then(function (response) {
+                var address = response.address || "";
+                var city = response.city || "";
+                var state = response.state || "";
+                var zip = response.zip || "";
+                var contact = response.contact || "";
+                var otherinfo = response.otherinfo || "";
+                var picurl1 = response.aadhaarPhoto || "";
+                var picurl2 = response.profilePhoto || "";
+
+                $("#address").val(address);
+                $("#inputCity").val(city);
+                if (state && !$("#inputState option").filter(function () { return this.value === state; }).length) {
+                    $("#inputState").append($("<option>").val(state).text(state));
                 }
-
-                $.ajax(obj).then(function (response) {
-                    let address = response.address || "";
-                    let city = response.city || "";
-                    let state = response.state || "";
-                    let zip = response.zip || "";
-                    let games = response.games || "";
-                    let contact = response.contact || "";
-                    let otherinfo = response.otherinfo || "";
-                    let picurl1 = response.aadhaarPhoto || "";
-                    let picurl2 = response.profilePhoto || "";
-
-                    $("#address").val(address);
-                    $("#inputCity").val(city);
-                    if (state && !$("#inputState option").filter(function () { return this.value === state; }).length) {
-                        $("#inputState").append($("<option>").val(state).text(state));
-                    }
-                    $("#inputState").val(state);
-                    $("#inputZip").val(zip);
-                    $("#games").val(games);
-                    $("#contact").val(contact);
-                    $("#otherinfo").val(otherinfo);
-                    $("#picurl").prop("src", picurl1 && picurl1 !== "nopic.jpg" ? picurl1 : PP_PLACEHOLDER);
-                    $("#picurl2").prop("src", picurl2 && picurl2 !== "nopic.jpg" ? picurl2 : PP_PLACEHOLDER);
-                    $("#hdn").val(picurl1);
-                    var missing = [];
-                    if (!address) missing.push("address");
-                    if (!state) missing.push("state");
-                    if (!city) missing.push("city");
-                    if (!zip) missing.push("ZIP");
-                    if (!contact) missing.push("contact number");
-                    if (!otherinfo) missing.push("other information");
-                    showDetailsStatus(
-                        missing.length
-                            ? "Saved details loaded. Please complete: " + missing.join(", ") + "."
-                            : "Saved details loaded. You can edit and update them.",
-                        !missing.length
-                    );
-                }).fail(function (err) { showDetailsStatus(err.responseText || "No saved details found for this email.", false); })
+                $("#inputState").val(state);
+                $("#inputZip").val(zip);
+                selectedSports = String(response.games || "").split(",").map(function (sport) {
+                    return sport.trim();
+                }).filter(Boolean);
+                renderSports();
+                $("#contact").val(contact);
+                $("#otherinfo").val(otherinfo);
+                $("#picurl").prop("src", picurl1 && picurl1 !== "nopic.jpg" ? picurl1 : PP_PLACEHOLDER);
+                $("#picurl2").prop("src", picurl2 && picurl2 !== "nopic.jpg" ? picurl2 : PP_PLACEHOLDER);
+                $("#hdn").val(picurl1);
+                showDetailsStatus("Saved details loaded. You can edit and update them anytime.", true);
+            }).fail(function (err) {
+                if (err.status === 404) showDetailsStatus("No saved details yet. Complete the form to create your profile.", true);
+                else showDetailsStatus(err.responseText || "Could not load your saved details.", false);
             });
 
             $(detailsForm).on("submit", function (event) {

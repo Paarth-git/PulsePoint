@@ -959,17 +959,25 @@
             // Function to get the list of available games
             $scope.initializeFilters = function () {
                 $scope.loadRegistered();
-                $http.get("/get-distinct-games").then(function(response) {
+                var email = null;
+                try { email = localStorage.getItem('loggedInUserEmail'); } catch (e) { }
+                $http.get("/get-distinct-games", { params: { email: email || "" } }).then(function(response) {
                     $scope.games = response.data;
                 });
             };
 
             // Function to find tournaments based on filters
             $scope.findTournaments = function () {
+                var email = null;
+                try { email = localStorage.getItem('loggedInUserEmail'); } catch (e) { }
                 $http({
                     method: 'GET',
                     url: '/filter-tournaments',
-                    params: $scope.filters
+                    params: {
+                        city: $scope.filters.city,
+                        sport: $scope.filters.sport,
+                        email: email || ""
+                    }
                 }).then(function (response) {
                     $scope.tournaments = response.data;
                     $scope.loadRegistered();

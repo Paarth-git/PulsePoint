@@ -735,24 +735,36 @@ app.get("/delete-one", function (req, resp) {
 });
 
 app.get("/filter-tournaments", function (req, resp) {
-    pool.query("SELECT * FROM post_event WHERE inputState = ? AND Category = ?", [req.query.city, req.query.sport], function (err, results) {
-        if (err) return dbFail(resp, err, false);
-        resp.json(results);
+    var email = String(req.query.email || "").trim().toLowerCase();
+    var sport = String(req.query.sport || "").trim().toLowerCase();
+    if (!email || !sport) return resp.json([]);
+    pool.query("SELECT games FROM player_details WHERE emailid = ? LIMIT 1", [email], function (playerErr, playerRows) {
+        if (playerErr) return dbFail(resp, playerErr, false);
+        var allowed = String(playerRows[0] && playerRows[0].games || "").split(",").map(function (game) {
+            return game.trim().toLowerCase();
+        }).filter(Boolean);
+        if (allowed.indexOf(sport) === -1) return resp.json([]);
+        pool.query("SELECT * FROM post_event WHERE inputState = ? AND LOWER(Category) = ?", [req.query.city, sport], function (err, results) {
+            if (err) return dbFail(resp, err, false);
+            resp.json(results);
+        });
     });
 });
 
 app.get("/get-distinct-games", function (req, resp) {
-    var games = [
-        "Athletics", "Badminton", "Basketball", "Boxing", "Chess", "Cricket",
-        "Cycling", "Football", "Golf", "Hockey", "Kabaddi", "Kho Kho",
-        "Swimming", "Table Tennis", "Tennis", "Volleyball", "Wrestling"
-    ];
-    pool.query("SELECT DISTINCT Category FROM post_event WHERE Category IS NOT NULL AND Category <> ''", function (err, rows) {
+    var email = String(req.query.email || "").trim().toLowerCase();
+    if (!email) return resp.json([]);
+    pool.query("SELECT games FROM player_details WHERE emailid = ? LIMIT 1", [email], function (err, rows) {
         if (err) return dbFail(resp, err, true);
-        rows.forEach(function (row) {
-            if (games.indexOf(row.Category) === -1) games.push(row.Category);
+        var games = String(rows[0] && rows[0].games || "").split(",").map(function (game) {
+            return game.trim();
+        }).filter(Boolean);
+        var unique = [];
+        games.forEach(function (game) {
+            if (unique.map(function (item) { return item.toLowerCase(); }).indexOf(game.toLowerCase()) === -1)
+                unique.push(game);
         });
-        resp.json(games.sort());
+        resp.json(unique.sort());
     });
 });
 
