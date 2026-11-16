@@ -19,6 +19,13 @@ services:
         sync: false
       - key: MYSQLDATABASE
         sync: false
+      # Use Railway public networking when the database and app are on different platforms.
+      - key: MYSQL_PUBLIC_HOST
+        sync: false
+      - key: MYSQL_PUBLIC_PORT
+        sync: false
+      - key: MYSQL_PUBLIC_URL
+        sync: false
       - key: ADMIN_EMAIL
         sync: false
       - key: ADMIN_USERNAME

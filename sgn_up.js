@@ -31,16 +31,41 @@ process.on("uncaughtException", function (err) {
 // ---------------------------------------------------------------- config
 // DB_* is convenient locally. Railway provides the equivalent MYSQL* names,
 // so both naming conventions are accepted without copying credentials into code.
+var mysqlUrl = process.env.MYSQL_PUBLIC_URL || process.env.MYSQL_URL || process.env.DATABASE_URL || "";
+var urlConfig = {};
+if (mysqlUrl) {
+    try {
+        var parsedMysqlUrl = new URL(mysqlUrl);
+        urlConfig = {
+            host: parsedMysqlUrl.hostname,
+            user: decodeURIComponent(parsedMysqlUrl.username),
+            password: decodeURIComponent(parsedMysqlUrl.password),
+            port: Number(parsedMysqlUrl.port) || 3306,
+            database: parsedMysqlUrl.pathname.replace(/^\/+/, "")
+        };
+    } catch (urlErr) {
+        console.log("Invalid MySQL connection URL:", urlErr.message);
+    }
+}
 var dbConfig = {
     // MYSQL_PUBLIC_* is required when the app is hosted outside Railway
     // (for example on Render); MYSQLHOST is Railway's private-network host.
-    host: process.env.MYSQL_PUBLIC_HOST || process.env.MYSQLHOST || process.env.DB_HOST || "127.0.0.1",
-    user: process.env.DB_USER || process.env.MYSQLUSER || "root",
-    password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || "",
-    port: Number(process.env.MYSQL_PUBLIC_PORT || process.env.MYSQLPORT || process.env.DB_PORT) || 3306,
+    host: process.env.MYSQL_PUBLIC_HOST || process.env.MYSQLHOST || urlConfig.host || process.env.DB_HOST || "127.0.0.1",
+    user: process.env.MYSQLUSER || urlConfig.user || process.env.DB_USER || "root",
+    password: process.env.MYSQLPASSWORD || urlConfig.password || process.env.DB_PASSWORD || "",
+    port: Number(process.env.MYSQL_PUBLIC_PORT || process.env.MYSQLPORT) || urlConfig.port || Number(process.env.DB_PORT) || 3306,
     connectTimeout: 10000
 };
-var databaseName = process.env.DB_NAME || process.env.MYSQLDATABASE || "sports_portal";
+var databaseName = process.env.DB_NAME || process.env.MYSQLDATABASE || urlConfig.database || "sports_portal";
+console.log("Database target:", dbConfig.host + ":" + dbConfig.port,
+    "| credentials:", dbConfig.user ? "configured" : "missing",
+    "| source:", mysqlUrl ? "connection URL" :
+        (process.env.MYSQL_PUBLIC_HOST || process.env.MYSQLHOST ? "MYSQL variables" : "DB variables/default"));
+if (process.env.NODE_ENV === "production" &&
+    !process.env.MYSQL_PUBLIC_HOST && !process.env.MYSQLHOST && !process.env.MYSQL_PUBLIC_URL &&
+    !process.env.MYSQL_URL && !process.env.DATABASE_URL && !process.env.DB_HOST) {
+    console.log("Database configuration missing: attach the Railway environment group to this Render service.");
+}
 var pool = mysql2.createPool(Object.assign({}, dbConfig, {
     database: databaseName,
     waitForConnections: true,
