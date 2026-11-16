@@ -1,0 +1,25 @@
+
+# Dependencies
+node_modules/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Local runtime data and user uploads
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Database backups
+*.sql
+*.sql.gz
+mysqlfiles/
+
+# System files
+.DS_Store
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*

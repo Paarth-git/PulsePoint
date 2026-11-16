@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: pulsepoint
+    env: node
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Copy these values from the Railway MySQL service variables.
+      - key: MYSQLHOST
+        sync: false
+      - key: MYSQLPORT
+        sync: false
+      - key: MYSQLUSER
+        sync: false
+      - key: MYSQLPASSWORD
+        sync: false
+      - key: MYSQLDATABASE
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: CASHFREE_ENV
+        value: production
+      - key: CASHFREE_CLIENT_ID
+        sync: false
+      - key: CASHFREE_CLIENT_SECRET
+        sync: false
+      - key: CASHFREE_API_VERSION
+        value: "2023-08-01"
+      - key: CASHFREE_VERIFY_ACCOUNT
+        value: "true"
+      - key: CASHFREE_BUSINESS_TYPE
+        value: Society/Trust/Club/Association
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: GEMINI_AADHAAR_MODEL
+        value: gemini-3-flash-preview

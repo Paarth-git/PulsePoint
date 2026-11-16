@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="PulsePoint connects players, organizers and admins on one tournament platform.">
+    <title>PulsePoint - Tournament Platform</title>
+
+    <!-- Apply saved / system theme before first paint to avoid a flash -->
+    <script>
+        (function () {
+            var t = null;
+            try { t = localStorage.getItem('pp-theme'); } catch (e) { }
+            if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-bs-theme', t);
+        })();
+    </script>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+
+    <style>
+        /* ---------- Design tokens ---------- */
+        :root {
+            --pp-accent: #2563eb;
+            --pp-accent-hover: #1d4ed8;
+            --pp-bg: #f6f7f9;
+            --pp-surface: #ffffff;
+            --pp-surface-alt: #eef1f5;
+            --pp-text: #1f2937;
+            --pp-muted: #5b6573;
+            --pp-border: #e1e5ea;
+            --pp-shadow: 0 1px 3px rgba(16, 24, 40, .08), 0 4px 12px rgba(16, 24, 40, .06);
+            --pp-shadow-hover: 0 8px 24px rgba(16, 24, 40, .14);
+            --pp-footer-bg: #111827;
+            --pp-footer-text: #cbd2dc;
+            --pp-radius: 12px;
+            --pp-header-h: 72px;
+        }
+
+        [data-bs-theme="dark"] {
+            --pp-accent: #60a5fa;
+            --pp-accent-hover: #93c5fd;
+            --pp-bg: #0f141b;
+            --pp-surface: #171d26;
+            --pp-surface-alt: #1c2430;
+            --pp-text: #e6e9ee;
+            --pp-muted: #9aa5b4;
+            --pp-border: #2a3341;
+            --pp-shadow: 0 1px 3px rgba(0, 0, 0, .4), 0 4px 12px rgba(0, 0, 0, .3);
+            --pp-shadow-hover: 0 8px 24px rgba(0, 0, 0, .5);
+            --pp-footer-bg: #0a0e14;
+            --pp-footer-text: #9aa5b4;
+
+            --bs-body-bg: var(--pp-bg);
+            --bs-body-color: var(--pp-text);
+        }
+
+        html { scroll-behavior: smooth; scroll-padding-top: calc(var(--pp-header-h) + 8px); }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--pp-bg);
+            color: var(--pp-text);
+            line-height: 1.6;
+            transition: background-color .25s ease, color .25s ease;
+        }
+
+        a:focus-visible, button:focus-visible, input:focus-visible,
+        select:focus-visible, textarea:focus-visible {
+            outline: 3px solid var(--pp-accent);
+            outline-offset: 2px;
+        }
+
+        .skip-link {
+            position: absolute; left: 12px; top: -60px; z-index: 2000;
+            background: var(--pp-accent); color: #fff; padding: 8px 14px; border-radius: 8px;
+            transition: top .2s;
+        }
+        .skip-link:focus { top: 12px; color: #fff; }
+
+        /* ---------- Buttons ---------- */
+        .btn-primary {
+            --bs-btn-bg: var(--pp-accent); --bs-btn-border-color: var(--pp-accent);
+            --bs-btn-hover-bg: var(--pp-accent-hover); --bs-btn-hover-border-color: var(--pp-accent-hover);
+            --bs-btn-active-bg: var(--pp-accent-hover); --bs-btn-active-border-color: var(--pp-accent-hover);
+            --bs-btn-color: #fff; --bs-btn-hover-color: #fff; --bs-btn-active-color: #fff;
+        }
+        [data-bs-theme="dark"] .btn-primary {
+            --bs-btn-color: #0b1220; --bs-btn-hover-color: #0b1220; --bs-btn-active-color: #0b1220;
+        }
+        .btn-outline-primary {
+            --bs-btn-color: var(--pp-accent); --bs-btn-border-color: var(--pp-accent);
+            --bs-btn-hover-bg: var(--pp-accent); --bs-btn-hover-border-color: var(--pp-accent);
+            --bs-btn-hover-color: #fff; --bs-btn-active-bg: var(--pp-accent); --bs-btn-active-color: #fff;
+        }
+        [data-bs-theme="dark"] .btn-outline-primary { --bs-btn-hover-color: #0b1220; --bs-btn-active-color: #0b1220; }
+        .btn { border-radius: 8px; font-weight: 600; }
+
+        /* ---------- Header (transparent glass bar over the dark hero) ---------- */
+        .site-header {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1030;
+            min-height: var(--pp-header-h);
+            display: flex; align-items: center;
+            /* soft dark scrim keeps the light text readable while the bar stays see-through */
+            background: linear-gradient(180deg, rgba(8, 12, 22, .55), rgba(8, 12, 22, 0));
+            border-bottom: 1px solid transparent;
+            transition: background .3s ease, box-shadow .3s ease, border-color .3s ease,
+                        backdrop-filter .3s ease, min-height .3s ease;
+        }
+        .site-header .navbar { width: 100%; padding-top: .35rem; padding-bottom: .35rem; }
+        .site-header.scrolled {
+            background: rgba(10, 16, 28, .55);
+            -webkit-backdrop-filter: blur(16px) saturate(160%);
+            backdrop-filter: blur(16px) saturate(160%);
+            border-bottom-color: rgba(255, 255, 255, .12);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, .25);
+        }
+
+        .navbar-brand {
+            font-weight: 700; font-size: 1.4rem; letter-spacing: .01em;
+            color: #fff; display: flex; align-items: center;
+            text-shadow: 0 1px 8px rgba(0, 0, 0, .35);
+        }
+        .navbar-brand:hover, .navbar-brand:focus { color: #fff; }
+        .navbar-brand img {
+            height: 40px; margin-right: 10px; border-radius: 10px;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, .35);
+        }
+
+        .site-header .nav-link {
+            color: rgba(255, 255, 255, .88); font-weight: 500; letter-spacing: .01em;
+            padding: .5rem 1rem; border-radius: 999px; position: relative;
+            text-shadow: 0 1px 6px rgba(0, 0, 0, .35);
+            transition: color .2s, background-color .2s;
+        }
+        .site-header .nav-link:hover, .site-header .nav-link:focus-visible {
+            color: #fff; background: rgba(255, 255, 255, .14);
+        }
+        .site-header .nav-link.active { color: #fff; background: rgba(255, 255, 255, .18); }
+        .site-header .nav-link.active::after {
+            content: ''; position: absolute; left: 50%; bottom: 3px; width: 18px; height: 2px;
+            transform: translateX(-50%); background: #60a5fa; border-radius: 2px;
+        }
+
+        /* Sign Up / Login: fully rounded pill buttons */
+        .site-header .btn {
+            border-radius: 50rem; padding: .5rem 1.35rem; letter-spacing: .02em;
+            transition: transform .2s, box-shadow .2s, background-color .2s, color .2s, border-color .2s;
+        }
+        .site-header .btn:hover { transform: translateY(-1px); }
+        .site-header .btn-outline-primary {
+            --bs-btn-color: #fff; --bs-btn-border-color: rgba(255, 255, 255, .65);
+            --bs-btn-hover-bg: #fff; --bs-btn-hover-border-color: #fff; --bs-btn-hover-color: #0b1220;
+            --bs-btn-active-bg: #fff; --bs-btn-active-border-color: #fff; --bs-btn-active-color: #0b1220;
+            background: rgba(255, 255, 255, .06);
+        }
+        .site-header .btn-primary {
+            --bs-btn-bg: #2563eb; --bs-btn-border-color: #2563eb; --bs-btn-color: #fff;
+            --bs-btn-hover-bg: #1d4ed8; --bs-btn-hover-border-color: #1d4ed8; --bs-btn-hover-color: #fff;
+            --bs-btn-active-bg: #1d4ed8; --bs-btn-active-border-color: #1d4ed8; --bs-btn-active-color: #fff;
+            box-shadow: 0 6px 18px rgba(37, 99, 235, .45);
+        }
+
+        /* Theme switch (real toggle) */
+        .theme-switch {
+            position: relative; flex: 0 0 auto;
+            width: 62px; height: 34px; padding: 0; cursor: pointer;
+            border-radius: 50rem; border: 1px solid rgba(255, 255, 255, .4);
+            background: rgba(255, 255, 255, .16);
+            -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+            transition: background-color .3s, border-color .3s;
+        }
+        .theme-switch:hover { border-color: #fff; }
+        .theme-switch .ts-track-icon {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            font-size: .75rem; color: rgba(255, 255, 255, .75); pointer-events: none;
+        }
+        .theme-switch .ts-track-sun { left: 9px; }
+        .theme-switch .ts-track-moon { right: 10px; }
+        .theme-switch .ts-knob {
+            position: absolute; top: 3px; left: 3px;
+            width: 26px; height: 26px; border-radius: 50%;
+            background: #fff; color: #f59e0b;
+            display: flex; align-items: center; justify-content: center; font-size: .8rem;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .35);
+            transition: transform .3s cubic-bezier(.4, 0, .2, 1), color .3s, background-color .3s;
+        }
+        .theme-switch .ts-knob .icon-moon { display: none; }
+        .theme-switch[aria-checked="true"] { background: rgba(37, 99, 235, .45); }
+        .theme-switch[aria-checked="true"] .ts-knob { transform: translateX(28px); color: #3b4cca; }
+        .theme-switch[aria-checked="true"] .ts-knob .icon-sun { display: none; }
+        .theme-switch[aria-checked="true"] .ts-knob .icon-moon { display: inline; }
+        .theme-switch:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
+
+        .navbar-toggler { border-color: rgba(255, 255, 255, .45); border-radius: 12px; }
+        .navbar-toggler:focus { box-shadow: 0 0 0 .2rem rgba(255, 255, 255, .25); }
+        .navbar-toggler-icon { filter: invert(1); }
+
+        /* ---------- Hero ---------- */
+        .hero-section {
+            position: relative;
+            background: url('/pics/sportssage.webp') no-repeat center center;
+            background-size: cover;
+            color: #fff; text-align: center;
+            padding: 130px 20px;
+        }
+        .hero-section::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(180deg, rgba(10, 16, 28, .55), rgba(10, 16, 28, .72));
+            transition: background .25s;
+        }
+        [data-bs-theme="dark"] .hero-section::before {
+            background: linear-gradient(180deg, rgba(5, 8, 14, .68), rgba(5, 8, 14, .85));
+        }
+        .hero-inner { position: relative; max-width: 760px; margin: 0 auto; }
+        .hero-section h1 { font-size: clamp(2.2rem, 5vw, 3.5rem); font-weight: 700; letter-spacing: -.01em; margin-bottom: .75rem; }
+        .hero-section p { font-size: clamp(1.05rem, 2vw, 1.3rem); margin: 0; opacity: .95; }
+
+        /* ---------- Sections ---------- */
+        .section { padding: 80px 0; }
+        .section-alt { background-color: var(--pp-surface); border-top: 1px solid var(--pp-border); border-bottom: 1px solid var(--pp-border); }
+        .section-title { text-align: center; margin-bottom: 3rem; font-weight: 700; position: relative; padding-bottom: 14px; }
+        .section-title::after {
+            content: ''; width: 56px; height: 3px; background: var(--pp-accent);
+            position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); border-radius: 3px;
+        }
+        .text-muted-pp { color: var(--pp-muted); }
+
+        /* ---------- Service cards ---------- */
+        .service-card {
+            height: 100%; background: var(--pp-surface); border: 1px solid var(--pp-border);
+            border-radius: var(--pp-radius); box-shadow: var(--pp-shadow);
+            padding: 1.75rem; text-align: center;
+            transition: transform .25s, box-shadow .25s, border-color .25s;
+        }
+        .service-card:hover { transform: translateY(-4px); box-shadow: var(--pp-shadow-hover); border-color: var(--pp-accent); }
+        .service-card img { height: 150px; width: 100%; object-fit: contain; margin-bottom: 1.25rem; }
+        .service-card h5 { font-weight: 600; }
+        .service-card p { color: var(--pp-muted); margin-bottom: 0; font-size: .95rem; }
+
+        /* ---------- Mission ---------- */
+        .mission-img { width: 100%; border-radius: var(--pp-radius); box-shadow: var(--pp-shadow); }
+        .mission-lead { font-size: 1.35rem; font-weight: 600; line-height: 1.5; }
+        .mission-body { font-size: 1.05rem; color: var(--pp-muted); }
+
+        /* ---------- Developers ---------- */
+        .developer-card { text-align: center; }
+        .developer-card img {
+            width: 150px; height: 150px; border-radius: 50%; object-fit: cover;
+            border: 4px solid var(--pp-surface); box-shadow: var(--pp-shadow); margin-bottom: 1rem;
+        }
+        .developer-card .role { font-size: .85rem; text-transform: uppercase; letter-spacing: .08em; color: var(--pp-muted); margin-bottom: .25rem; }
+        .developer-card h4 { font-weight: 600; }
+
+        /* ---------- Contact ---------- */
+        .contact-card {
+            background: var(--pp-surface); border: 1px solid var(--pp-border);
+            border-radius: var(--pp-radius); box-shadow: var(--pp-shadow); padding: 2rem; height: 100%;
+        }
+        .contact-card dt { font-weight: 600; }
+        .contact-card dd { color: var(--pp-muted); margin-bottom: .5rem; }
+        .map-container { height: 100%; min-height: 380px; border-radius: var(--pp-radius); overflow: hidden; border: 1px solid var(--pp-border); box-shadow: var(--pp-shadow); }
+        .map-container iframe { width: 100%; height: 100%; min-height: 380px; border: 0; display: block; }
+        .form-control, .form-select {
+            background-color: var(--pp-bg); border-color: var(--pp-border); color: var(--pp-text);
+        }
+        .form-control:focus, .form-select:focus { background-color: var(--pp-bg); color: var(--pp-text); border-color: var(--pp-accent); box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--pp-accent) 25%, transparent); }
+        .form-label { font-weight: 500; font-size: .9rem; }
+
+        /* ---------- Modals ---------- */
+        .modal-content { background: var(--pp-surface); border: 1px solid var(--pp-border); border-radius: var(--pp-radius); }
+        .modal-header { border-bottom-color: var(--pp-border); }
+        .form-status { min-height: 1.5rem; font-size: .9rem; margin-bottom: .75rem; }
+        .form-status.error { color: #dc2626; }
+        .form-status.success { color: #16a34a; }
+        [data-bs-theme="dark"] .form-status.error { color: #f87171; }
+        [data-bs-theme="dark"] .form-status.success { color: #4ade80; }
+
+        /* ---------- Footer ---------- */
+        .site-footer { background: var(--pp-footer-bg); color: var(--pp-footer-text); padding: 56px 0 0; }
+        .site-footer h6 { color: #fff; font-weight: 600; margin-bottom: 1rem; }
+        .site-footer a { color: var(--pp-footer-text); text-decoration: none; }
+        .site-footer a:hover { color: #fff; text-decoration: underline; }
+        .site-footer ul { list-style: none; padding: 0; margin: 0; }
+        .site-footer li { margin-bottom: .5rem; }
+        .footer-brand { color: #fff; font-weight: 700; font-size: 1.25rem; display: flex; align-items: center; margin-bottom: .75rem; }
+        .footer-brand img { height: 32px; margin-right: 10px; border-radius: 6px; }
+        .footer-bottom { border-top: 1px solid rgba(255, 255, 255, .1); margin-top: 40px; padding: 18px 0; font-size: .875rem; }
+
+        /* ---------- Reveal on scroll ---------- */
+        .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s ease, transform .6s ease; }
+        .reveal.visible { opacity: 1; transform: none; }
+
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            *, *::before, *::after { transition: none !important; animation: none !important; }
+            .reveal { opacity: 1; transform: none; }
+        }
+        @media (max-width: 991.98px) {
+            .site-header .nav-link.active::after { display: none; }
+            .site-header .navbar-collapse {
+                margin-top: .6rem; padding: 1rem; border-radius: 20px;
+                background: rgba(10, 16, 28, .82);
+                -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+                border: 1px solid rgba(255, 255, 255, .12);
+            }
+            .site-header .navbar-nav { text-align: center; }
+            .site-header .navbar-collapse .d-flex { justify-content: center; flex-wrap: wrap; }
+            .section { padding: 56px 0; }
+            .hero-section { padding: 90px 20px; }
+        }
+        /* ---------- Single Login / Sign Up box ---------- */
+        .auth-card { border-radius: 16px; overflow: hidden; }
+        .auth-tabs {
+            display: flex; gap: 4px; padding: 4px;
+            background: var(--pp-bg); border: 1px solid var(--pp-border); border-radius: 50rem;
+        }
+        .auth-tab {
+            flex: 1; border: 0; background: transparent; color: var(--pp-muted);
+            font-weight: 600; padding: .5rem 1rem; border-radius: 50rem;
+            transition: background-color .2s, color .2s, box-shadow .2s;
+        }
+        .auth-tab:hover { color: var(--pp-text); }
+        .auth-tab.active {
+            background: var(--pp-accent); color: #fff;
+            box-shadow: 0 4px 12px color-mix(in srgb, var(--pp-accent) 40%, transparent);
+        }
+        [data-bs-theme="dark"] .auth-tab.active { color: #0b1220; }
+        .auth-tab:focus-visible { outline: 3px solid var(--pp-accent); outline-offset: 2px; }
+
+        /* ---------- Participant / Organizer switch + footer links ---------- */
+        .role-label { font-size: .85rem; font-weight: 600; color: var(--pp-muted); margin-bottom: .4rem; }
+        .role-switch { display: flex; gap: 8px; margin-bottom: 1rem; }
+        .role-opt {
+            flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            padding: .55rem .75rem; border-radius: 12px; font-weight: 600; font-size: .92rem;
+            background: var(--pp-bg); color: var(--pp-muted); border: 1.5px solid var(--pp-border);
+            transition: background-color .2s, color .2s, border-color .2s, box-shadow .2s;
+        }
+        .role-opt:hover { color: var(--pp-text); border-color: var(--pp-accent); }
+        .role-opt.active {
+            color: var(--pp-accent); border-color: var(--pp-accent);
+            background: color-mix(in srgb, var(--pp-accent) 12%, transparent);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--pp-accent) 18%, transparent);
+        }
+        .role-opt:focus-visible { outline: 3px solid var(--pp-accent); outline-offset: 2px; }
+        .auth-foot { text-align: center; margin: 1rem 0 0; font-size: .92rem; color: var(--pp-muted); }
+        .auth-link {
+            border: 0; background: none; padding: 0; font-weight: 700; color: var(--pp-accent);
+            text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+        }
+        .auth-link:hover { filter: brightness(1.15); }
+        .auth-link:focus-visible { outline: 3px solid var(--pp-accent); outline-offset: 2px; border-radius: 4px; }
+        .pw-wrap { position: relative; }
+        .pw-wrap .form-control { padding-right: 2.6rem; }
+        .pw-eye {
+            position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+            border: 0; background: none; color: var(--pp-muted); padding: 6px 8px; border-radius: 6px;
+        }
+        .pw-eye:hover { color: var(--pp-text); }
+        .pw-checks { list-style: none; padding: 0; margin: .6rem 0 0; font-size: .88rem; }
+        .pw-checks li {
+            display: flex; align-items: center; gap: 8px; margin-bottom: .2rem;
+            color: #9ca3af; transition: color .2s;
+        }
+        .pw-checks li i { width: 16px; text-align: center; }
+        .pw-checks li.ok { color: #16a34a; }
+        [data-bs-theme="dark"] .pw-checks li { color: #6b7280; }
+        [data-bs-theme="dark"] .pw-checks li.ok { color: #4ade80; }
+        .form-text { color: var(--pp-muted); font-size: .82rem; }
+        [hidden] { display: none !important; }
+    
+        /* ================= PulsePoint UI v2 (landing page) ================= */
+        @keyframes pp-fade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes pp-float { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-8px, -10px); } }
+        @keyframes pp-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        @keyframes pp-spin { to { transform: rotate(360deg); } }
+        @keyframes pp-ripple { to { transform: scale(2.6); opacity: 0; } }
+
+        body {
+            animation: pp-fade .5s ease backwards;
+            transition: opacity .28s ease, background-color .25s ease, color .25s ease;
+        }
+        body.pp-leaving { opacity: 0; }
+        #ppProgress {
+            position: fixed; top: 0; left: 0; height: 3px; width: 0; z-index: 2000; pointer-events: none;
+            background: linear-gradient(90deg, var(--pp-accent), #a78bfa);
+            box-shadow: 0 0 12px var(--pp-accent);
+            transition: width .5s ease;
+        }
+        body.pp-leaving #ppProgress { width: 90%; }
+
+        .btn { position: relative; overflow: hidden; }
+        .pp-ripple {
+            position: absolute; border-radius: 50%; pointer-events: none;
+            background: rgba(255, 255, 255, .45); transform: scale(0);
+            animation: pp-ripple .65s ease-out forwards;
+        }
+
+        .pp-banner { display: block; position: relative; overflow: hidden; width: 100%; height: 150px; border-radius: 10px; margin-bottom: 1.25rem; }
+        .pp-banner::before {
+            content: ''; position: absolute; inset: 0; pointer-events: none;
+            background-image: radial-gradient(rgba(255, 255, 255, .22) 1.3px, transparent 1.4px);
+            background-size: 20px 20px;
+        }
+        .pp-banner svg {
+            position: absolute; left: 50%; top: 50%; height: 84%; width: auto; aspect-ratio: 1 / 1;
+            transform: translate(-50%, -50%); overflow: visible;
+        }
+        .pp-banner .pp-orb {
+            position: absolute; right: -40px; top: -60px; width: 170px; height: 170px; border-radius: 50%;
+            background: rgba(255, 255, 255, .12); animation: pp-float 7s ease-in-out infinite;
+        }
+        .pp-banner .pp-orb.o2 {
+            left: -30px; right: auto; top: auto; bottom: -40px; width: 110px; height: 110px;
+            background: rgba(255, 255, 255, .09); animation-duration: 9s; animation-delay: -3s;
+        }
+        .service-card .pp-banner { transition: transform .6s ease; }
+        .service-card:hover .pp-banner { transform: scale(1.03); }
+        .pp-banner .pp-art { animation: pp-bob 5s ease-in-out infinite; }
+        .pp-banner .pp-spin { transform-box: fill-box; transform-origin: center; animation: pp-spin 16s linear infinite; }
+        .mission-img.pp-banner { height: auto; aspect-ratio: 4 / 3; margin-bottom: 0; display: block; }
+
+
+        /* ---------- Real-world sports media (hero slideshow + welcome clip) ---------- */
+        .hero-section { overflow: hidden; }
+        .hero-section::before { z-index: 1; }
+        .hero-inner { z-index: 2; }
+        .hero-slides { position: absolute; inset: 0; z-index: 0; }
+        .hero-section.has-slides { min-height: clamp(500px, 78vh, 720px); display: flex; align-items: center; justify-content: center; background-color: #05080e; }
+        .hero-section.has-slides .hero-inner { width: 100%; }
+        .hero-slide {
+            position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 28%;
+            opacity: 0; transition: opacity 1.2s ease; transform: scale(1); will-change: opacity, transform;
+        }
+        .hero-slide.is-active { opacity: 1; animation: ppHeroZoom 9s ease-out forwards; }
+        @keyframes ppHeroZoom { from { transform: scale(1); } to { transform: scale(1.08); } }
+        .pp-banner .pp-real { animation: ppMissionZoom 12s ease-in-out infinite alternate; }
+        @keyframes ppMissionZoom { from { transform: scale(1); } to { transform: scale(1.07); } }
+        .hero-controls {
+            position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 3;
+            display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-radius: 50rem;
+            background: rgba(10, 16, 28, .45); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+        }
+        .hero-dot { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 50%; background: rgba(255,255,255,.45); cursor: pointer; transition: background-color .25s, transform .25s; }
+        .hero-dot.is-active { background: #fff; transform: scale(1.3); }
+        .hero-dot:focus-visible, .hero-pause:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+        .hero-pause { border: 0; background: none; color: #fff; font-size: .8rem; line-height: 1; padding: 0 2px; cursor: pointer; opacity: .9; }
+        .hero-controls[hidden] { display: none; }
+        .pp-banner.has-real-media::before, .pp-banner.has-real-media > svg, .pp-banner.has-real-media .pp-orb { display: none; }
+        .pp-banner .pp-real { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+        /* Photo slideshow layout: sharp athlete photo on the right over a blurred copy of itself, text on the left */
+        .hero-section.has-slides { min-height: clamp(520px, 82vh, 740px); display: flex; align-items: center; background-color: #05080e; padding: 120px 20px 90px; }
+        .hero-section.has-slides::before { background: linear-gradient(90deg, rgba(5,8,14,.88) 0%, rgba(5,8,14,.55) 45%, rgba(5,8,14,.1) 100%); }
+        .hero-section.has-slides .hero-inner { max-width: 1140px; width: 100%; margin: 0 auto; }
+        .hero-section.has-slides .hero-inner h1, .hero-section.has-slides .hero-inner p { max-width: 520px; margin-left: auto; margin-right: auto; }
+        .hero-section.has-slides .hero-inner p { opacity: .92; }
+        .hero-bg { position: absolute; top: -30px; left: -30px; width: calc(100% + 60px); height: calc(100% + 60px); object-fit: cover; filter: blur(28px) brightness(.55); }
+        .hero-fg { position: absolute; top: 0; right: 0; height: 100%; width: 100%; object-fit: cover; object-position: 50% 25%; transform-origin: 70% 40%; }
+        .hero-slide.is-active .hero-fg { animation: ppHeroZoom 9s ease-out forwards; }
+        @keyframes ppHeroZoom { from { transform: scale(1); } to { transform: scale(1.07); } }
+        @media (min-width: 992px) {
+            .hero-section.has-slides .hero-inner { text-align: left; }
+            .hero-section.has-slides .hero-inner h1, .hero-section.has-slides .hero-inner p { margin-left: 0; margin-right: 0; }
+            .hero-fg { width: auto; max-width: 78%; object-fit: contain;
+                -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 24%); mask-image: linear-gradient(90deg, transparent 0, #000 24%); }
+        }
+        @media (max-width: 991.98px) {
+            .hero-section.has-slides::before { background: linear-gradient(180deg, rgba(5,8,14,.55), rgba(5,8,14,.82)); }
+        }
+        .pp-banner .pp-real { animation: ppMissionZoom 14s ease-in-out infinite alternate; }
+        @keyframes ppMissionZoom { from { transform: scale(1); } to { transform: scale(1.08); } }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; }
+        }
+        
+        </style>
+</head>
+
+<body>
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <!-- ================= HEADER ================= -->
+    <header class="site-header" id="siteHeader">
+        <nav class="navbar navbar-expand-lg" aria-label="Main navigation">
+            <div class="container">
+                <a class="navbar-brand" href="#">
+                    <img src="/pics/Pulsepoint5.jpg" alt="PulsePoint logo">
+                    PulsePoint
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+                        <li class="nav-item"><a class="nav-link" href="#home">Home</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#services">Our Services</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#mission">Our Mission</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#developers">Developers</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#reach-us">Reach Us</a></li>
+                    </ul>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="theme-switch" id="themeToggle" role="switch"
+                            aria-checked="false" aria-label="Dark theme" title="Toggle dark theme">
+                            <i class="fa-solid fa-sun ts-track-icon ts-track-sun" aria-hidden="true"></i>
+                            <i class="fa-solid fa-moon ts-track-icon ts-track-moon" aria-hidden="true"></i>
+                            <span class="ts-knob" aria-hidden="true">
+                                <i class="fa-solid fa-sun icon-sun"></i>
+                                <i class="fa-solid fa-moon icon-moon"></i>
+                            </span>
+                        </button>
+                        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#authModal" data-auth-tab="signup">Sign Up</button>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#authModal" data-auth-tab="login">Login</button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- ================= BODY ================= -->
+    <main id="main">
+        <!-- Hero -->
+        <section class="hero-section" id="home">
+            <div class="hero-slides" id="heroSlides" aria-hidden="true"></div>
+            <div class="hero-inner">
+                <h1>Welcome to PulsePoint</h1>
+                <p>Connecting Players to Tournaments with Style</p>
+            </div>
+            <div class="hero-controls" id="heroControls" role="group" aria-label="Sports slideshow controls" hidden></div>
+        </section>
+
+        <!-- Our Services -->
+        <section id="services" class="section">
+            <div class="container">
+                <h2 class="section-title reveal">Our Services</h2>
+                <div class="row g-4">
+                    <div class="col-sm-6 col-lg-3 reveal">
+                        <div class="service-card">
+                            <div class="pp-banner" role="img" aria-label="Tournaments" style="background:linear-gradient(135deg,#92400e,#f59e0b)"><span class="pp-orb" aria-hidden="true"></span><span class="pp-orb o2" aria-hidden="true"></span><svg viewBox="-96 -92 192 184" preserveAspectRatio="xMidYMid meet" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><g class="pp-art"><path d="M-40 -52 H40 V-16 C40 10 20 24 0 24 C-20 24 -40 10 -40 -16 Z" fill="#fff"/><path d="M-40 -40 H-56 C-56 -18 -48 -8 -34 -6" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/><path d="M40 -40 H56 C56 -18 48 -8 34 -6" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/><rect x="-7" y="24" width="14" height="18" fill="#fff"/><rect x="-30" y="42" width="60" height="12" rx="5" fill="#fff"/><polygon points="0.0,-32.0 3.5,-22.9 13.3,-22.3 5.7,-16.1 8.2,-6.7 0.0,-12.0 -8.2,-6.7 -5.7,-16.1 -13.3,-22.3 -3.5,-22.9" fill="#fbbf24"/></g></svg></div>
+                            <h5>Tournaments</h5>
+                            <p>Create and manage tournaments with ease. Set match schedules, view live results, and track winners.</p>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3 reveal">
+                        <div class="service-card">
+                            <div class="pp-banner" role="img" aria-label="Organizers" style="background:linear-gradient(135deg,#0f766e,#14b8a6)"><span class="pp-orb" aria-hidden="true"></span><span class="pp-orb o2" aria-hidden="true"></span><svg viewBox="-96 -92 192 184" preserveAspectRatio="xMidYMid meet" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><g class="pp-art"><rect x="-46" y="-50" width="92" height="102" rx="6" fill="#fff"/><rect x="-30" y="-36" width="14" height="12" rx="2" fill="#1e40af" fill-opacity=".5"/><rect x="-6" y="-36" width="14" height="12" rx="2" fill="#1e40af" fill-opacity=".5"/><rect x="18" y="-36" width="14" height="12" rx="2" fill="#1e40af" fill-opacity=".5"/><rect x="-30" y="-14" width="14" height="12" rx="2" fill="#1e40af" fill-opacity=".5"/><rect x="-6" y="-14" width="14" height="12" rx="2" fill="#1e40af" fill-opacity=".5"/><rect x="18" y="-14" width="14" height="12" rx="2" fill="#1e40af" fill-opacity=".5"/><rect x="-30" y="8" width="14" height="12" rx="2" fill="#1e40af" fill-opacity=".5"/><rect x="-6" y="8" width="14" height="12" rx="2" fill="#1e40af" fill-opacity=".5"/><rect x="18" y="8" width="14" height="12" rx="2" fill="#1e40af" fill-opacity=".5"/><rect x="-9" y="30" width="18" height="22" rx="2" fill="#1e40af" fill-opacity=".75"/><line x1="0" y1="-50" x2="0" y2="-82" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M0 -82 L30 -73 L0 -64 Z" fill="#fbbf24"/></g></svg></div>
+                            <h5>Organizers</h5>
+                            <p>Organizers can register events, assign teams, update results, and handle all match logistics smoothly.</p>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3 reveal">
+                        <div class="service-card">
+                            <div class="pp-banner" role="img" aria-label="Sports Players" style="background:linear-gradient(135deg,#9a3412,#f97316)"><span class="pp-orb" aria-hidden="true"></span><span class="pp-orb o2" aria-hidden="true"></span><svg viewBox="-96 -92 192 184" preserveAspectRatio="xMidYMid meet" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><g class="pp-art"><g transform="translate(-26 2) scale(1.25)" opacity="1"><circle cx="0" cy="-22" r="12" fill="#fff"/><path d="M-22 26 C-22 2 22 2 22 26 Z" fill="#fff"/></g><circle cx="48" cy="26" r="24" fill="#fff"/><polygon points="48,14 57,20 54,31 42,31 39,20" fill="#9a3412" fill-opacity=".55"/><path d="M48 2 V14 M72 26 H57 M24 26 H39 M48 50 V31 M61 9 L57 20 M35 9 L39 20" stroke="#9a3412" stroke-opacity=".4" stroke-width="2" fill="none"/></g></svg></div>
+                            <h5>Sports Players</h5>
+                            <p>Players can register for tournaments, view schedules, and track their game stats and performance.</p>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3 reveal">
+                        <div class="service-card">
+                            <div class="pp-banner" role="img" aria-label="Admin" style="background:linear-gradient(135deg,#0f172a,#1d4ed8)"><span class="pp-orb" aria-hidden="true"></span><span class="pp-orb o2" aria-hidden="true"></span><svg viewBox="-96 -92 192 184" preserveAspectRatio="xMidYMid meet" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><g class="pp-art"><path d="M0 -58 L50 -40 V2 C50 34 26 52 0 62 C-26 52 -50 34 -50 2 V-40 Z" fill="#fff"/><path d="M-22 2 L-6 18 L24 -14" fill="none" stroke="#1d4ed8" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></g></svg></div>
+                            <h5>Admin</h5>
+                            <p>Admins handle user management and platform settings to ensure smooth operations and maintain system integrity.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Our Mission -->
+        <section id="mission" class="section section-alt">
+            <div class="container">
+                <h2 class="section-title reveal">Our Mission</h2>
+                <div class="row align-items-center g-5">
+                    <div class="col-md-5 reveal">
+                        <div class="pp-banner mission-img" id="welcomeMedia" role="img" aria-label="Our mission" style="background:linear-gradient(135deg,#1e3a8a,#0891b2)"><span class="pp-orb" aria-hidden="true"></span><span class="pp-orb o2" aria-hidden="true"></span><svg viewBox="-96 -92 192 184" preserveAspectRatio="xMidYMid meet" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><g class="pp-art"><circle r="62" fill="#fff" fill-opacity=".14"/><circle r="46" fill="#fff" fill-opacity=".25"/><circle r="30" fill="#fff"/><circle r="13" fill="#0891b2"/><path d="M14 -14 L62 -62 M62 -62 L48 -62 M62 -62 L62 -48" stroke="#fff" stroke-width="5" stroke-linecap="round" fill="none"/></g></svg></div>
+                    </div>
+                    <div class="col-md-7 reveal">
+                        <p class="mission-lead">With PulsePoint, our mission is to revolutionize the way sports tournaments are organized, experienced, and remembered. We believe sports bring people together, ignite passion, and drive excellence.</p>
+                        <p class="mission-body mb-0">We empower organizers with tools to manage registrations, schedules, teams, and results effortlessly — eliminating complexity and enhancing transparency.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Meet the Developers -->
+        <section id="developers" class="section">
+            <div class="container">
+                <h2 class="section-title reveal">Meet the Developers</h2>
+                <p class="text-center text-muted-pp fw-semibold mb-5 reveal">The minds behind PulsePoint.</p>
+                <div class="row justify-content-center g-5">
+                    <div class="col-md-4 developer-card reveal">
+                        <img src="/pics/sir.jpg" alt="Mr. Rajesh Bansal">
+                        <p class="role">Under the guidance of</p>
+                        <h4>Rajesh Bansal Sir</h4>
+                        <p class="text-muted-pp">Founder – Bangalore Computer Education</p>
+                    </div>
+                    <div class="col-md-4 developer-card reveal">
+                        <img src="/pics/hasandeep.jpg" alt="Hasandeep Singh">
+                        <p class="role">Developed by</p>
+                        <h4>Hasandeep Singh</h4>
+                        <p class="text-muted-pp">A student of Giani Zail Singh Campus College</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Reach Us -->
+        <section id="reach-us" class="section section-alt">
+            <div class="container">
+                <h2 class="section-title reveal">Reach Us</h2>
+                <div class="row g-4">
+                    <div class="col-lg-6 reveal">
+                        <div class="map-container">
+                            <iframe title="Location map"
+                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3314.512501780368!2d74.92232847539594!3d30.17288657485907!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39172d0bb1737c33%3A0xed9d3631bdaa7e49!2sGiani%20Zail%20Singh%20Campus%20College%20of%20Engineering%20and%20Technology!5e1!3m2!1sen!2sin!4v1753364119354!5m2!1sen!2sin"
+                                allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 reveal">
+                        <div class="contact-card">
+                            <h5 class="mb-3">Contact Info</h5>
+                            <dl class="mb-0">
+                                <dt>Email</dt>
+                                <dd><a href="mailto:hasandeep021@gmail.com">hasandeep021@gmail.com</a></dd>
+                                <dt>Phone</dt>
+                                <dd><a href="tel:+919465819078">+91 9465819078</a></dd>
+                            </dl>
+                            <hr>
+                            <h5 class="mb-3">Send a Message</h5>
+                            <form>
+                                <div class="mb-3">
+                                    <label class="form-label" for="contactName">Name</label>
+                                    <input type="text" class="form-control" id="contactName" placeholder="Your name" autocomplete="name">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" for="contactEmail">Email</label>
+                                    <input type="email" class="form-control" id="contactEmail" placeholder="you@example.com" autocomplete="email">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" for="contactMsg">Message</label>
+                                    <textarea class="form-control" id="contactMsg" rows="4" placeholder="How can we help?"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">Send</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ================= FOOTER ================= -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-5">
+                    <div class="footer-brand">
+                        <img src="/pics/Pulsepoint5.jpg" alt="">
+                        PulsePoint
+                    </div>
+                    <p class="mb-0">A tournament platform that connects players, organizers and admins in one place.</p>
+                </div>
+                <div class="col-6 col-lg-3 offset-lg-1">
+                    <h6>Explore</h6>
+                    <ul>
+                        <li><a href="#services">Our Services</a></li>
+                        <li><a href="#mission">Our Mission</a></li>
+                        <li><a href="#developers">Developers</a></li>
+                        <li><a href="#reach-us">Reach Us</a></li>
+                    </ul>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <h6>Contact</h6>
+                    <ul>
+                        <li><a href="mailto:hasandeep021@gmail.com">hasandeep021@gmail.com</a></li>
+                        <li><a href="tel:+919465819078">+91 9465819078</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom text-center">
+                &copy; <span id="year">2025</span> PulsePoint. All Rights Reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- ================= AUTH: one box for Login and Sign Up ================= -->
+    <div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content auth-card">
+                <div class="modal-header border-0 pb-0">
+                    <h2 class="visually-hidden" id="authTitle">Login or Sign Up</h2>
+                    <div class="auth-tabs flex-grow-1" role="tablist">
+                        <button type="button" class="auth-tab active" data-tab="login" role="tab" aria-selected="true">Login</button>
+                        <button type="button" class="auth-tab" data-tab="signup" role="tab" aria-selected="false">Sign Up</button>
+                    </div>
+                    <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body pt-4">
+                    <!-- LOGIN -->
+                    <div id="loginPane">
+                        <div class="role-label" id="loginRoleLabel">Login as</div>
+                        <div class="role-switch" role="radiogroup" aria-labelledby="loginRoleLabel">
+                            <button type="button" class="role-opt active" data-role="participant" role="radio" aria-checked="true"><i class="fa-solid fa-user"></i> Participant</button>
+                            <button type="button" class="role-opt" data-role="org" role="radio" aria-checked="false"><i class="fa-solid fa-building"></i> Organizer</button>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="loginUsername">Username</label>
+                            <input type="text" class="form-control" id="loginUsername" autocomplete="username">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="loginPassword">Password</label>
+                            <div class="pw-wrap">
+                                <input type="password" class="form-control" id="loginPassword" autocomplete="current-password">
+                                <button type="button" class="pw-eye" data-target="loginPassword" aria-label="Show password"><i class="fa-solid fa-eye-slash"></i></button>
+                            </div>
+                        </div>
+                        <div class="form-status" id="loginStatus" role="status" aria-live="polite"></div>
+                        <button type="button" class="btn btn-primary w-100" id="btnLogin">Login</button>
+                        <p class="auth-foot">Don't have an account? <button type="button" class="auth-link" data-auth-tab="signup">Create one &mdash; Sign Up</button></p>
+                    </div>
+
+                    <!-- SIGN UP -->
+                    <div id="signupPane" hidden>
+                        <div class="role-label" id="signupRoleLabel">Sign up as</div>
+                        <div class="role-switch" role="radiogroup" aria-labelledby="signupRoleLabel">
+                            <button type="button" class="role-opt active" data-role="participant" role="radio" aria-checked="true"><i class="fa-solid fa-user"></i> Participant</button>
+                            <button type="button" class="role-opt" data-role="org" role="radio" aria-checked="false"><i class="fa-solid fa-building"></i> Organizer</button>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="signupUsername">Username</label>
+                            <input type="text" class="form-control" id="signupUsername" autocomplete="username" maxlength="30">
+                            <div class="form-text">3 to 30 letters, numbers, dots or underscores.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="signupEmail">Email address</label>
+                            <input type="email" class="form-control" id="signupEmail" autocomplete="email" maxlength="30">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="signupPassword">Password</label>
+                            <div class="pw-wrap">
+                                <input type="password" class="form-control" id="signupPassword" autocomplete="new-password" maxlength="20">
+                                <button type="button" class="pw-eye" data-target="signupPassword" aria-label="Show password"><i class="fa-solid fa-eye-slash"></i></button>
+                            </div>
+                            <ul class="pw-checks" id="pwChecks">
+                                <li data-rule="length"><i class="fa-solid fa-xmark"></i> At least 6 characters</li>
+                                <li data-rule="number"><i class="fa-solid fa-xmark"></i> At least one number</li>
+                                <li data-rule="special"><i class="fa-solid fa-xmark"></i> At least one special character (e.g. ! @ # $)</li>
+                            </ul>
+                        </div>
+                        <div class="mb-3 d-none">
+                            <label class="form-label" for="comboUser">Account type</label>
+                            <select id="comboUser" class="form-select">
+                                <option value="participant">Participant</option>
+                                <option value="org">Organizer</option>
+                            </select>
+                        </div>
+                        <div class="form-status" id="signupStatus" role="status" aria-live="polite"></div>
+                        <button type="button" class="btn btn-primary w-100" id="btnSignup" disabled>Sign Up</button>
+                        <p class="auth-foot">Already have an account? <button type="button" class="auth-link" data-auth-tab="login">Login</button></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // ---------- Theme toggle ----------
+        (function () {
+            var root = document.documentElement;
+            var btn = document.getElementById('themeToggle');
+
+            function apply(theme) {
+                root.setAttribute('data-bs-theme', theme);
+                var dark = theme === 'dark';
+                btn.setAttribute('aria-checked', String(dark));
+                btn.setAttribute('title', dark ? 'Dark theme on - click to switch to light' : 'Light theme on - click to switch to dark');
+            }
+            apply(root.getAttribute('data-bs-theme'));
+
+            btn.addEventListener('click', function () {
+                var next = root.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+                apply(next);
+                try { localStorage.setItem('pp-theme', next); } catch (e) { }
+            });
+
+            // Follow the OS setting until the user picks a theme manually
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+                var saved = null;
+                try { saved = localStorage.getItem('pp-theme'); } catch (err) { }
+                if (!saved) apply(e.matches ? 'dark' : 'light');
+            });
+        })();
+
+        // ---------- Header shadow, active link on scroll, reveal animation ----------
+        (function () {
+            document.getElementById('year').textContent = new Date().getFullYear();
+
+            var header = document.getElementById('siteHeader');
+            function onScroll() { header.classList.toggle('scrolled', window.scrollY > 8); }
+            window.addEventListener('scroll', onScroll, { passive: true });
+            onScroll();
+
+            var links = document.querySelectorAll('#navbarNav .nav-link');
+            var sections = Array.prototype.map.call(links, function (l) {
+                return document.querySelector(l.getAttribute('href'));
+            });
+            if ('IntersectionObserver' in window) {
+                var spy = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (en) {
+                        if (en.isIntersecting) {
+                            links.forEach(function (l) {
+                                var on = l.getAttribute('href') === '#' + en.target.id;
+                                l.classList.toggle('active', on);
+                                if (on) l.setAttribute('aria-current', 'true'); else l.removeAttribute('aria-current');
+                            });
+                        }
+                    });
+                }, { rootMargin: '-40% 0px -55% 0px' });
+                sections.forEach(function (s) { if (s) spy.observe(s); });
+
+                var io = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (en) {
+                        if (en.isIntersecting) { en.target.classList.add('visible'); io.unobserve(en.target); }
+                    });
+                }, { threshold: 0.12 });
+                document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+            } else {
+                document.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('visible'); });
+            }
+
+            // Close the mobile menu after choosing a link
+            var nav = document.getElementById('navbarNav');
+            links.forEach(function (l) {
+                l.addEventListener('click', function () {
+                    if (nav.classList.contains('show')) bootstrap.Collapse.getOrCreateInstance(nav).hide();
+                });
+            });
+        })();
+
+        // ---------- Single box: Login / Sign Up ----------
+        $(function () {
+            var PW_RULES = {
+                length: function (p) { return p.length >= 6; },
+                number: function (p) { return /\d/.test(p); },
+                special: function (p) { return /[^A-Za-z0-9\s]/.test(p); }
+            };
+            var USERNAME_RE = /^[A-Za-z0-9_.]{3,30}$/;
+            var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+            function setStatus($el, msg, type) {
+                $el.text(msg || '').removeClass('error success').addClass(type || '');
+            }
+            function busy($btn, on, label) {
+                $btn.prop('disabled', on).text(on ? 'Please wait…' : label);
+            }
+            // Turns a failed request into a message the user (and you) can act on
+            function explainFailure(jqXHR, textStatus, what) {
+                console.error(what + ' request failed:', textStatus, jqXHR.status, jqXHR.responseText);
+                if (location.protocol === 'file:')
+                    return 'This page was opened as a file. Start the server (node sgn_up.js) and open http://localhost:2400 instead.';
+                if (textStatus === 'timeout')
+                    return 'The server took too long to answer. Check that Node and MySQL are running.';
+                if (jqXHR.status === 0)
+                    return 'Cannot reach the server. Make sure "node sgn_up.js" is running and open this page from http://localhost:2400.';
+                if (jqXHR.status === 404)
+                    return 'Server route not found (404). Make sure you are running the latest sgn_up.js.';
+                if (jqXHR.responseJSON && jqXHR.responseJSON.message) return jqXHR.responseJSON.message;
+                if (jqXHR.responseText) return jqXHR.responseText;
+                return what + ' failed (HTTP ' + jqXHR.status + '). Check the server terminal.';
+            }
+
+            // ----- switch between Login and Sign Up inside the one box -----
+            function showTab(name) {
+                var isLogin = name === 'login';
+                $('#loginPane').prop('hidden', !isLogin);
+                $('#signupPane').prop('hidden', isLogin);
+                $('.auth-tab').each(function () {
+                    var on = $(this).data('tab') === name;
+                    $(this).toggleClass('active', on).attr('aria-selected', String(on));
+                });
+                setStatus($('#loginStatus'), '');
+                setStatus($('#signupStatus'), '');
+            }
+            $('.auth-tab').on('click', function () { showTab($(this).data('tab')); });
+            $(document).on('click', '[data-auth-tab]', function () { showTab($(this).data('auth-tab')); });
+
+            // ----- Participant / Organizer switch (same choice shown in Login and Sign Up) -----
+            function setRole(role) {
+                $('.role-opt').each(function () {
+                    var on = $(this).data('role') === role;
+                    $(this).toggleClass('active', on).attr('aria-checked', String(on));
+                });
+                $('#comboUser').val(role);
+            }
+            $(document).on('click', '.role-opt', function () { setRole($(this).data('role')); });
+
+            // ----- show / hide password -----
+            $(document).on('click', '.pw-eye', function () {
+                var $input = $('#' + $(this).data('target'));
+                var show = $input.attr('type') === 'password';
+                $input.attr('type', show ? 'text' : 'password');
+                $(this).find('i').toggleClass('fa-eye', show).toggleClass('fa-eye-slash', !show);
+            });
+
+            // ----- live password checklist: grey cross -> green tick -----
+            function checkPassword(pwd) {
+                var all = true;
+                $('#pwChecks li').each(function () {
+                    var ok = PW_RULES[$(this).data('rule')](pwd);
+                    all = all && ok;
+                    $(this).toggleClass('ok', ok)
+                           .find('i').toggleClass('fa-check', ok).toggleClass('fa-xmark', !ok);
+                });
+                return all;
+            }
+            // Sign Up stays disabled until every field is valid
+            function updateSignupButton() {
+                var u = $('#signupUsername').val().trim();
+                var e = $('#signupEmail').val().trim();
+                var ok = USERNAME_RE.test(u) && EMAIL_RE.test(e) && checkPassword($('#signupPassword').val());
+                $('#btnSignup').prop('disabled', !ok);
+            }
+            $('#signupUsername, #signupEmail, #signupPassword').on('input', updateSignupButton);
+            updateSignupButton();
+
+            // ----- SIGN UP -----
+            $('#btnSignup').on('click', function () {
+                var $btn = $(this), $status = $('#signupStatus');
+                var username = $('#signupUsername').val().trim();
+                var email = $('#signupEmail').val().trim();
+                var pwd = $('#signupPassword').val();
+
+                setStatus($status, '');
+                busy($btn, true, 'Sign Up');
+                $.ajax({
+                    type: 'post',
+                    url: '/server-signup',
+                    cache: false,
+                    timeout: 15000,
+                    data: { username: username, id: email, txtPwd: pwd, comboUser: $('#comboUser').val() }
+                }).done(function (response) {
+                    var ok = String(response).trim() === 'recorded successfully';
+                    if (!ok) {
+                        setStatus($status, response, 'error');
+                        window.ppToast(response, false);
+                        return;
+                    }
+
+                    // success: clear the form, show the toast, and move to the Login tab
+                    $('#signupPane input').val('');
+                    checkPassword('');
+                    $('#loginUsername').val(username);
+                    showTab('login');
+                    window.ppToast('Signup successful! Please log in.', true);
+                }).fail(function (jqXHR, textStatus) {
+                    setStatus($status, explainFailure(jqXHR, textStatus, 'Signup'), 'error');
+                }).always(function () {
+                    busy($btn, false, 'Sign Up');
+                    updateSignupButton();
+                });
+            });
+
+            // ----- LOGIN -----
+            $('#btnLogin').on('click', function () {
+                var $btn = $(this), $status = $('#loginStatus');
+                var username = $('#loginUsername').val().trim();
+                var pwd = $('#loginPassword').val();
+
+                if (!username || !pwd) {
+                    var missingLogin = 'Please enter your username and password.';
+                    setStatus($status, missingLogin, 'error');
+                    window.ppToast(missingLogin, false);
+                    return;
+                }
+
+                setStatus($status, '');
+                busy($btn, true, 'Login');
+                $.ajax({
+                    type: 'post',
+                    url: '/do_login',
+                    dataType: 'json',
+                    cache: false,
+                    timeout: 15000,
+                    data: { username: username, txtPwd2: pwd, accountType: $('#comboUser').val() }
+                }).done(function (response) {
+                    if (response.status === 'success') {
+                        try {
+                            localStorage.setItem('loggedInUserEmail', response.email);
+                            localStorage.setItem('loggedInUsername', response.username);
+                        } catch (e) { console.warn('localStorage unavailable', e); }
+                        setStatus($status, 'Login successful, redirecting…', 'success');
+                        var target = { Admin: '/dash_admin.html', org: '/dash_organistaion.html', participant: '/dash_player.html' }[response.userType];
+                        if (target) window.location.href = target;
+                        else {
+                            var unknownRole = 'Unknown user type: ' + response.userType;
+                            setStatus($status, unknownRole, 'error');
+                            window.ppToast(unknownRole, false);
+                            busy($btn, false, 'Login');
+                        }
+                    } else {
+                        var loginError = response.message || 'Login failed.';
+                        setStatus($status, loginError, 'error');
+                        window.ppToast(loginError, false);
+                        busy($btn, false, 'Login');
+                    }
+                }).fail(function (jqXHR, textStatus) {
+                    var requestError = explainFailure(jqXHR, textStatus, 'Login');
+                    setStatus($status, requestError, 'error');
+                    window.ppToast(requestError, false);
+                    busy($btn, false, 'Login');
+                });
+            });
+
+            // Enter key submits the visible form
+            $('#loginPane input').on('keydown', function (e) { if (e.key === 'Enter') $('#btnLogin').click(); });
+            $('#signupPane input').on('keydown', function (e) {
+                if (e.key === 'Enter' && !$('#btnSignup').prop('disabled')) $('#btnSignup').click();
+            });
+        });
+    </script>
+    <script id="pp-ui-v2">
+    (function () {
+        'use strict';
+        var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var bar = document.createElement('div');
+        bar.id = 'ppProgress';
+        document.body.appendChild(bar);
+
+        document.addEventListener('click', function (e) {
+            var a = e.target.closest ? e.target.closest('a[href]') : null;
+            if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            if (a.target === '_blank' || a.hasAttribute('download')) return;
+            var href = a.getAttribute('href');
+            if (!href || href.charAt(0) === '#' || a.origin !== window.location.origin) return;
+            e.preventDefault();
+            document.body.classList.add('pp-leaving');
+            setTimeout(function () { window.location.href = a.href; }, reduce ? 0 : 280);
+        });
+        window.addEventListener('pageshow', function (e) { if (e.persisted) document.body.classList.remove('pp-leaving'); });
+
+        document.addEventListener('click', function (e) {
+            var b = e.target.closest ? e.target.closest('.btn') : null;
+            if (!b || b.disabled || reduce) return;
+            var r = b.getBoundingClientRect(), s = Math.max(r.width, r.height), w = document.createElement('span');
+            w.className = 'pp-ripple';
+            w.style.width = s + 'px';
+            w.style.height = s + 'px';
+            w.style.left = (e.clientX - r.left - s / 2) + 'px';
+            w.style.top = (e.clientY - r.top - s / 2) + 'px';
+            b.appendChild(w);
+            setTimeout(function () { w.remove(); }, 650);
+        });
+    })();
+    </script>
+
+<!-- ===== PulsePoint toast notifications (green = success, red = error) ===== -->
+<style id="pp-toast-v3-css">
+    .ppt-stack { position: fixed; top: 16px; right: 16px; z-index: 3000; display: flex; flex-direction: column; gap: 10px; width: min(380px, calc(100vw - 24px)); pointer-events: none; }
+    .ppt { pointer-events: auto; display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 12px; color: #fff; font-size: .93rem; line-height: 1.35; box-shadow: 0 10px 28px rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.18); animation: ppt-in .35s cubic-bezier(.2,.9,.3,1.2) backwards; word-break: break-word; }
+    .ppt-ok  { background: #16a34a; }
+    .ppt-err { background: #dc2626; }
+    .ppt-ico { flex: 0 0 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,.22); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: .8rem; margin-top: 1px; }
+    .ppt-msg { flex: 1; }
+    .ppt-x { flex: 0 0 auto; background: none; border: 0; color: #fff; opacity: .8; font-size: 1.2rem; line-height: 1; padding: 0 2px; cursor: pointer; }
+    .ppt-x:hover { opacity: 1; }
+    .ppt.ppt-out { animation: ppt-out .25s ease forwards; }
+    @keyframes ppt-in  { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+    @keyframes ppt-out { to { opacity: 0; transform: translateX(24px); } }
+    @media (prefers-reduced-motion: reduce) { .ppt, .ppt.ppt-out { animation: none; } }
+    /* inline status lines are now shown as toasts instead */
+    .form-status { display: none !important; }
+</style>
+<script id="pp-toast-v3">
+(function () {
+    'use strict';
+    if (window.__ppToastV3) return;
+    window.__ppToastV3 = true;
+
+    var stack;
+    function getStack() {
+        if (!stack || !stack.isConnected) {
+            stack = document.createElement('div');
+            stack.className = 'ppt-stack';
+            document.body.appendChild(stack);
+        }
+        return stack;
+    }
+
+    function close(t) {
+        if (!t || t._gone) return;
+        t._gone = true;
+        t.classList.add('ppt-out');
+        setTimeout(function () { t.remove(); }, 260);
+    }
+
+    function show(msg, ok) {
+        msg = String(msg == null ? '' : msg).trim();
+        if (!msg) return;
+        var s = getStack();
+        var kids = s.children;
+        for (var i = 0; i < kids.length; i++) {            // don't stack identical toasts
+            if (kids[i]._msg === msg && kids[i]._ok === ok && !kids[i]._gone) return;
+        }
+        while (kids.length >= 4) s.removeChild(kids[0]);
+
+        var t = document.createElement('div');
+        t.className = 'ppt ' + (ok ? 'ppt-ok' : 'ppt-err');
+        t.setAttribute('role', ok ? 'status' : 'alert');
+        t._msg = msg; t._ok = ok;
+
+        var ico = document.createElement('span');
+        ico.className = 'ppt-ico';
+        ico.setAttribute('aria-hidden', 'true');
+        ico.textContent = ok ? '\u2713' : '!';
+        var txt = document.createElement('span');
+        txt.className = 'ppt-msg';
+        txt.textContent = msg;
+        var x = document.createElement('button');
+        x.type = 'button';
+        x.className = 'ppt-x';
+        x.setAttribute('aria-label', 'Dismiss');
+        x.innerHTML = '&times;';
+        x.addEventListener('click', function () { close(t); });
+
+        t.appendChild(ico); t.appendChild(txt); t.appendChild(x);
+        s.appendChild(t);
+        setTimeout(function () { close(t); }, ok ? 4000 : 5500);
+    }
+
+    var ERR = /error|fail|invalid|inavlid|incorrect|cannot|can't|could not|unable|not found|not updated|no saved|required|wrong|taken|already|blocked|too long|too large|must |please (enter|fill|choose|select)|^fill |^invalid$/i;
+
+    // explicit: ppToast(message, true|false)
+    window.ppToast = function (msg, ok) { show(msg, !!ok); };
+    // automatic: picks green/red from the wording unless ok is given
+    window.ppNotify = function (msg, ok) {
+        if (msg && typeof msg === 'object') {          // a failed request object is always an error
+            msg = msg.responseText || msg.statusText || msg.message || 'Something went wrong. Please try again.';
+            if (ok === undefined) ok = false;
+        }
+        msg = String(msg == null ? '' : msg).trim();
+        if (ok === undefined) ok = !ERR.test(msg);
+        show(msg, ok);
+    };
+
+    // Mirror every inline .form-status line into a toast
+    function watch(el) {
+        function run(records) {
+            var txt = (el.textContent || '').trim();
+            var textChanged = !records || records.some(function (r) { return r.type !== 'attributes'; });
+            if (!txt) { el._last = ''; return; }
+            if (!textChanged && el._last === txt) return;
+            el._last = txt;
+            if (/^(saving|loading|please wait)/i.test(txt)) return;
+            var ok = el.classList.contains('success') ? true : el.classList.contains('error') ? false : undefined;
+            window.ppNotify(txt, ok);
+        }
+        new MutationObserver(run).observe(el, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    }
+    function init() { document.querySelectorAll('.form-status').forEach(watch); }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
+<script id="pp-sports-media">
+(function () {
+    'use strict';
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var SLIDE_MS = 6500;
+
+    function isVideo(m) { return /^video\//.test(m.type); }
+    function makeEl(m, cls) {
+        var el;
+        if (isVideo(m)) {
+            el = document.createElement('video');
+            el.muted = true; el.loop = true; el.playsInline = true; el.setAttribute('playsinline', '');
+            el.preload = 'metadata'; el.setAttribute('aria-hidden', 'true'); el.tabIndex = -1;
+        } else {
+            el = document.createElement('img'); el.alt = ''; el.decoding = 'async';
+        }
+        el.className = cls; el.src = m.src;
+        return el;
+    }
+
+    function initHero(list) {
+        var wrap = document.getElementById('heroSlides'), ctl = document.getElementById('heroControls');
+        var hero = document.getElementById('home');
+        if (!wrap || !ctl || !list.length) return;      // nothing uploaded -> keep original banner image
+        var slides = [], dots = [], idx = 0, timer = null, playing = !reduce;
+        hero.style.backgroundImage = 'none'; hero.classList.add('has-slides');
+        hero.classList.add('has-slides');
+        list.forEach(function (m, i) {
+            var el;
+            if (isVideo(m)) el = makeEl(m, 'hero-slide');
+            else {
+                el = document.createElement('div'); el.className = 'hero-slide';
+                var bg = makeEl(m, 'hero-bg'), fg = makeEl(m, 'hero-fg');
+                el.appendChild(bg); el.appendChild(fg);
+            }
+            slides.push(el); wrap.appendChild(el);
+        });
+        function show(n) {
+            idx = (n + slides.length) % slides.length;
+            slides.forEach(function (el, i) {
+                var on = i === idx;
+                el.classList.toggle('is-active', on);
+                if (dots[i]) { dots[i].classList.toggle('is-active', on); dots[i].setAttribute('aria-current', on ? 'true' : 'false'); }
+                if (el.tagName === 'VIDEO') {
+                    if (on) { try { el.currentTime = 0; } catch (e) {} if (playing) { var p = el.play(); if (p && p.catch) p.catch(function () {}); } }
+                    else el.pause();
+                }
+            });
+        }
+        function schedule() { clearTimeout(timer); if (playing && slides.length > 1) timer = setTimeout(function () { show(idx + 1); schedule(); }, SLIDE_MS); }
+        if (slides.length > 1) {
+            slides.forEach(function (_, i) {
+                var d = document.createElement('button'); d.type = 'button'; d.className = 'hero-dot';
+                d.setAttribute('aria-label', 'Show sports slide ' + (i + 1));
+                d.addEventListener('click', function () { show(i); schedule(); });
+                dots.push(d); ctl.appendChild(d);
+            });
+            var pb = document.createElement('button'); pb.type = 'button'; pb.className = 'hero-pause';
+            function paint() { pb.innerHTML = playing ? '<i class="fa-solid fa-pause" aria-hidden="true"></i>' : '<i class="fa-solid fa-play" aria-hidden="true"></i>'; pb.setAttribute('aria-label', playing ? 'Pause slideshow' : 'Play slideshow'); }
+            pb.addEventListener('click', function () { playing = !playing; paint(); show(idx); schedule(); });
+            paint(); ctl.appendChild(pb); ctl.hidden = false;
+        }
+        show(0); schedule();
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden) { clearTimeout(timer); slides.forEach(function (el) { if (el.tagName === 'VIDEO') el.pause(); }); }
+            else { show(idx); schedule(); }
+        });
+    }
+
+    function initWelcome(list) {
+        var box = document.getElementById('welcomeMedia');
+        if (!box || !list.length) return;               // nothing uploaded -> keep current graphic
+        var m = list[0], el = makeEl(m, 'pp-real');
+        if (isVideo(m)) { el.autoplay = !reduce; if (reduce) el.loop = false; }
+        box.classList.add('has-real-media'); box.setAttribute('aria-label', 'Sports in action');
+        box.appendChild(el);
+        if (isVideo(m) && !reduce) { var p = el.play(); if (p && p.catch) p.catch(function () {}); }
+    }
+
+    function start() {
+        fetch('/api/sports-media', { cache: 'no-cache' })
+            .then(function (r) { return r.ok ? r.json() : { hero: [], welcome: [] }; })
+            .then(function (d) { initHero(d.hero || []); initWelcome(d.welcome || []); })
+            .catch(function () { /* keep static fallback */ });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+</script>
+</body>
+
+</html>

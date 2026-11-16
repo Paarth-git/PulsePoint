@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Profile - PulsePoint</title>
+
+    <!-- Apply saved / system theme before first paint (same key on every PulsePoint page) -->
+    <script>
+        (function () {
+            var t = null;
+            try { t = localStorage.getItem('pp-theme'); } catch (e) { }
+            if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-bs-theme', t);
+        })();
+    </script>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+
+    <style>
+        /* ---------- Design tokens ---------- */
+        :root {
+            --pp-accent: #2563eb;
+            --pp-accent-hover: #1d4ed8;
+            --pp-surface: rgba(255, 255, 255, .88);
+            --pp-surface-solid: #ffffff;
+            --pp-text: #1f2937;
+            --pp-muted: #5b6573;
+            --pp-border: rgba(225, 229, 234, .9);
+            --pp-shadow: 0 1px 3px rgba(16, 24, 40, .1), 0 8px 24px rgba(16, 24, 40, .12);
+            --pp-shadow-hover: 0 12px 32px rgba(16, 24, 40, .25);
+            --pp-overlay: linear-gradient(180deg, rgba(10, 16, 28, .55), rgba(10, 16, 28, .75));
+            --pp-radius: 14px;
+            --pp-header-h: 68px;
+            --pp-sidebar-w: 250px;
+        }
+
+        [data-bs-theme="dark"] {
+            --pp-accent: #60a5fa;
+            --pp-accent-hover: #93c5fd;
+            --pp-surface: rgba(23, 29, 38, .86);
+            --pp-surface-solid: #171d26;
+            --pp-text: #e6e9ee;
+            --pp-muted: #9aa5b4;
+            --pp-border: rgba(255, 255, 255, .1);
+            --pp-shadow: 0 1px 3px rgba(0, 0, 0, .5), 0 8px 24px rgba(0, 0, 0, .4);
+            --pp-shadow-hover: 0 12px 32px rgba(0, 0, 0, .6);
+            --pp-overlay: linear-gradient(180deg, rgba(5, 8, 14, .7), rgba(5, 8, 14, .88));
+            --bs-body-bg: #0f141b;
+            --bs-body-color: var(--pp-text);
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+            color: var(--pp-text);
+            min-height: 100vh;
+            background: #0b1220 url('/pics/sportssage.webp') no-repeat center center fixed;
+            background-size: cover;
+        }
+        body::before {
+            content: ''; position: fixed; inset: 0; z-index: -1;
+            background: var(--pp-overlay);
+            transition: background .25s;
+        }
+
+        a:focus-visible, button:focus-visible, input:focus-visible {
+            outline: 3px solid var(--pp-accent); outline-offset: 2px;
+        }
+
+        /* ---------- Buttons ---------- */
+        .btn { border-radius: 8px; font-weight: 600; }
+        .btn-primary {
+            --bs-btn-bg: var(--pp-accent); --bs-btn-border-color: var(--pp-accent);
+            --bs-btn-hover-bg: var(--pp-accent-hover); --bs-btn-hover-border-color: var(--pp-accent-hover);
+            --bs-btn-active-bg: var(--pp-accent-hover); --bs-btn-active-border-color: var(--pp-accent-hover);
+            --bs-btn-color: #fff; --bs-btn-hover-color: #fff; --bs-btn-active-color: #fff;
+        }
+        [data-bs-theme="dark"] .btn-primary {
+            --bs-btn-color: #0b1220; --bs-btn-hover-color: #0b1220; --bs-btn-active-color: #0b1220;
+        }
+
+        /* ---------- Top bar ---------- */
+        .topbar {
+            position: fixed; top: 0; left: 0; right: 0; height: var(--pp-header-h); z-index: 1030;
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            padding: 0 20px;
+            background: rgba(10, 16, 28, .55);
+            -webkit-backdrop-filter: blur(16px) saturate(160%);
+            backdrop-filter: blur(16px) saturate(160%);
+            border-bottom: 1px solid rgba(255, 255, 255, .12);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, .25);
+        }
+        .topbar-left, .topbar-right { display: flex; align-items: center; gap: 12px; }
+
+        .brand {
+            display: flex; align-items: center; color: #fff; text-decoration: none;
+            font-weight: 700; font-size: 1.35rem; letter-spacing: .01em;
+            text-shadow: 0 1px 8px rgba(0, 0, 0, .35);
+        }
+        .brand:hover { color: #fff; }
+        .brand img { height: 38px; margin-right: 10px; border-radius: 10px; box-shadow: 0 0 0 2px rgba(255, 255, 255, .35); }
+
+        .menu-btn {
+            display: none; width: 40px; height: 40px; border-radius: 12px; cursor: pointer;
+            background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .4); color: #fff;
+        }
+
+        /* Theme switch */
+        .theme-switch {
+            position: relative; flex: 0 0 auto; width: 62px; height: 34px; padding: 0; cursor: pointer;
+            border-radius: 50rem; border: 1px solid rgba(255, 255, 255, .4);
+            background: rgba(255, 255, 255, .16);
+            -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+            transition: background-color .3s, border-color .3s;
+        }
+        .theme-switch:hover { border-color: #fff; }
+        .theme-switch .ts-track-icon {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            font-size: .75rem; color: rgba(255, 255, 255, .75); pointer-events: none;
+        }
+        .theme-switch .ts-track-sun { left: 9px; }
+        .theme-switch .ts-track-moon { right: 10px; }
+        .theme-switch .ts-knob {
+            position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%;
+            background: #fff; color: #f59e0b; display: flex; align-items: center; justify-content: center; font-size: .8rem;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .35);
+            transition: transform .3s cubic-bezier(.4, 0, .2, 1), color .3s;
+        }
+        .theme-switch .ts-knob .icon-moon { display: none; }
+        .theme-switch[aria-checked="true"] { background: rgba(37, 99, 235, .45); }
+        .theme-switch[aria-checked="true"] .ts-knob { transform: translateX(28px); color: #3b4cca; }
+        .theme-switch[aria-checked="true"] .ts-knob .icon-sun { display: none; }
+        .theme-switch[aria-checked="true"] .ts-knob .icon-moon { display: inline; }
+
+        .user-chip {
+            display: flex; align-items: center; gap: 8px; color: #fff; font-size: .9rem;
+            padding: 5px 14px 5px 6px; border-radius: 50rem;
+            background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .2);
+            max-width: 240px;
+        }
+        .user-chip .avatar {
+            width: 28px; height: 28px; border-radius: 50%; background: #2563eb; color: #fff;
+            display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .8rem; flex: 0 0 auto;
+        }
+        .user-chip span.name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .btn-logout {
+            border-radius: 50rem; padding: .45rem 1.2rem; color: #fff; letter-spacing: .02em;
+            background: rgba(220, 53, 69, .9); border: 1px solid rgba(220, 53, 69, 1);
+            box-shadow: 0 6px 18px rgba(220, 53, 69, .35);
+            transition: transform .2s, background-color .2s;
+        }
+        .btn-logout:hover { background: #dc3545; color: #fff; transform: translateY(-1px); }
+
+        /* ---------- Sidebar ---------- */
+        .sidebar {
+            position: fixed; top: var(--pp-header-h); left: 0; bottom: 0; width: var(--pp-sidebar-w); z-index: 1020;
+            display: flex; flex-direction: column; padding: 20px 14px;
+            background: var(--pp-surface);
+            -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+            border-right: 1px solid var(--pp-border);
+            transition: transform .3s ease;
+        }
+        .sidebar .label {
+            font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: var(--pp-muted);
+            padding: 0 12px; margin-bottom: 8px;
+        }
+        .sidebar nav { display: flex; flex-direction: column; gap: 4px; }
+        .side-link {
+            display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px;
+            color: var(--pp-text); text-decoration: none; font-weight: 500; background: none; border: 0; width: 100%; text-align: left;
+            transition: background-color .2s, color .2s;
+        }
+        .side-link i { width: 20px; text-align: center; color: var(--pp-muted); transition: color .2s; }
+        .side-link:hover { background: color-mix(in srgb, var(--pp-accent) 12%, transparent); color: var(--pp-text); }
+        .side-link:hover i { color: var(--pp-accent); }
+        .side-link.active { background: var(--pp-accent); color: #fff; }
+        [data-bs-theme="dark"] .side-link.active { color: #0b1220; }
+        .side-link.active i { color: inherit; }
+        .sidebar-footer {
+            margin-top: auto; padding: 14px; border-radius: 12px; font-size: .82rem; color: var(--pp-muted);
+            background: color-mix(in srgb, var(--pp-accent) 8%, transparent); border: 1px solid var(--pp-border);
+        }
+        .sidebar-backdrop {
+            display: none; position: fixed; inset: 0; z-index: 1015; background: rgba(0, 0, 0, .5);
+        }
+
+        /* ---------- Main ---------- */
+        .main {
+            margin-left: var(--pp-sidebar-w); padding: calc(var(--pp-header-h) + 32px) 32px 32px;
+            min-height: 100vh; display: flex; flex-direction: column;
+        }
+        .page-head { color: #fff; margin-bottom: 28px; text-shadow: 0 1px 10px rgba(0, 0, 0, .4); }
+        .page-head .eyebrow { font-size: .8rem; text-transform: uppercase; letter-spacing: .12em; opacity: .8; }
+        .page-head h1 { font-size: clamp(1.7rem, 3.5vw, 2.4rem); font-weight: 700; margin: 4px 0 6px; letter-spacing: -.01em; }
+        .page-head h1 .who { color: #93c5fd; word-break: break-all; }
+        .page-head p { margin: 0; opacity: .9; }
+
+        /* ---------- Cards ---------- */
+        .dash-card {
+            height: 100%; display: flex; flex-direction: column;
+            background: var(--pp-surface); border: 1px solid var(--pp-border);
+            -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+            border-radius: var(--pp-radius); box-shadow: var(--pp-shadow); overflow: hidden;
+            transition: transform .25s, box-shadow .25s, border-color .25s;
+        }
+        .dash-card:hover { transform: translateY(-5px); box-shadow: var(--pp-shadow-hover); border-color: var(--pp-accent); }
+        .dash-card .thumb { position: relative; height: 170px; overflow: hidden; background: #1c2430; }
+        .dash-card .thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s; }
+        .dash-card:hover .thumb img { transform: scale(1.06); }
+        .dash-card .thumb .icon {
+            position: absolute; left: 16px; bottom: -22px; width: 48px; height: 48px; border-radius: 12px; z-index: 1;
+            background: var(--pp-accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;
+            box-shadow: 0 6px 16px rgba(37, 99, 235, .4);
+        }
+        [data-bs-theme="dark"] .dash-card .thumb .icon { color: #0b1220; }
+        .dash-card .body { padding: 36px 20px 20px; display: flex; flex-direction: column; flex: 1; }
+        .dash-card h5 { font-weight: 700; margin-bottom: .5rem; }
+        .dash-card p { color: var(--pp-muted); font-size: .95rem; flex: 1; }
+
+        /* ---------- Footer ---------- */
+        .dash-footer { margin-top: auto; padding-top: 40px; text-align: center; font-size: .85rem; color: rgba(255, 255, 255, .7); }
+
+        /* ---------- Modal / forms ---------- */
+        .modal-content { background: var(--pp-surface-solid); border: 1px solid var(--pp-border); border-radius: var(--pp-radius); }
+        .modal-header, .modal-footer { border-color: var(--pp-border); }
+        .form-control { background-color: var(--pp-surface-solid); border-color: var(--pp-border); color: var(--pp-text); }
+        .form-control:focus { background-color: var(--pp-surface-solid); color: var(--pp-text); border-color: var(--pp-accent); box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--pp-accent) 25%, transparent); }
+        .form-control:disabled { opacity: .75; }
+        .pw-wrap { position: relative; }
+        .pw-wrap .form-control { padding-right: 2.6rem; }
+        .pw-wrap i { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--pp-muted); }
+        .pw-rules { font-size: .82rem; color: var(--pp-muted); margin: .5rem 0 0; padding-left: 1.1rem; }
+        .form-status { min-height: 1.4rem; font-size: .9rem; }
+        .form-status.error { color: #dc2626; } .form-status.success { color: #16a34a; }
+        [data-bs-theme="dark"] .form-status.error { color: #f87171; } [data-bs-theme="dark"] .form-status.success { color: #4ade80; }
+
+        /* ---------- LIGHT theme ----------
+           The background photo stays clearly visible: the overlay is only a light
+           veil, and text sits on frosted panels instead of on the photo itself. */
+        [data-bs-theme="light"] {
+            --pp-overlay: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .22));
+            --pp-surface: rgba(255, 255, 255, .92);
+        }
+        [data-bs-theme="light"] body { background-color: #f6f7f9; }
+        [data-bs-theme="light"] .topbar {
+            background: rgba(255, 255, 255, .78);
+            border-bottom-color: rgba(16, 24, 40, .08);
+            box-shadow: 0 4px 20px rgba(16, 24, 40, .08);
+        }
+        [data-bs-theme="light"] .brand,
+        [data-bs-theme="light"] .brand:hover { color: #1f2937; text-shadow: none; }
+        [data-bs-theme="light"] .brand img { box-shadow: 0 0 0 2px rgba(16, 24, 40, .12); }
+        [data-bs-theme="light"] .menu-btn { color: #1f2937; background: rgba(16, 24, 40, .04); border-color: rgba(16, 24, 40, .25); }
+        [data-bs-theme="light"] .theme-switch { background: rgba(16, 24, 40, .08); border-color: rgba(16, 24, 40, .25); }
+        [data-bs-theme="light"] .theme-switch:hover { border-color: #1f2937; }
+        [data-bs-theme="light"] .theme-switch .ts-track-icon { color: #5b6573; }
+        [data-bs-theme="light"] .theme-switch .ts-knob { background: #fff; box-shadow: 0 2px 6px rgba(16, 24, 40, .3); }
+        [data-bs-theme="light"] .user-chip { color: #1f2937; background: rgba(16, 24, 40, .05); border-color: rgba(16, 24, 40, .12); }
+        [data-bs-theme="light"] .page-head {
+            color: #1f2937; text-shadow: none;
+            background: rgba(255, 255, 255, .82);
+            -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, .75); border-radius: var(--pp-radius);
+            padding: 20px 24px; box-shadow: var(--pp-shadow);
+        }
+        [data-bs-theme="light"] .page-head .eyebrow { opacity: .65; }
+        [data-bs-theme="light"] .page-head .who { color: #2563eb; }
+        [data-bs-theme="light"] .dash-footer {
+            color: #374151; padding: 12px 16px; border-radius: var(--pp-radius);
+            background: rgba(255, 255, 255, .82); box-shadow: var(--pp-shadow);
+        }
+
+        /* ---------- Responsive ---------- */
+        @media (max-width: 991.98px) {
+            .menu-btn { display: inline-flex; align-items: center; justify-content: center; }
+            .sidebar { transform: translateX(-100%); }
+            body.sidebar-open .sidebar { transform: none; }
+            body.sidebar-open .sidebar-backdrop { display: block; }
+            .main { margin-left: 0; padding: calc(var(--pp-header-h) + 24px) 16px 24px; }
+            .user-chip span.name { display: none; }
+            .user-chip { padding: 5px; }
+        }
+        @media (max-width: 575.98px) {
+            .brand span { display: none; }
+            .topbar { padding: 0 12px; }
+            .topbar-right { gap: 8px; }
+            .btn-logout span { display: none; }
+            .btn-logout { padding: .45rem .8rem; }
+        }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+        /* ---------- Sub-page components (same look as the dashboards) ---------- */
+        .pp-panel {
+            background: var(--pp-surface); border: 1px solid var(--pp-border);
+            -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+            border-radius: var(--pp-radius); box-shadow: var(--pp-shadow); padding: 28px;
+        }
+        .pp-panel .form-label, .pp-panel label { color: var(--pp-text); font-weight: 600; font-size: .92rem; margin-bottom: .35rem; }
+        .pp-panel .form-control, .pp-panel .form-select {
+            background-color: var(--pp-surface-solid); border: 1px solid var(--pp-border);
+            color: var(--pp-text); border-radius: 8px;
+        }
+        .pp-panel .form-control::placeholder { color: var(--pp-muted); opacity: .8; }
+        .pp-panel .form-control:focus, .pp-panel .form-select:focus {
+            background-color: var(--pp-surface-solid); color: var(--pp-text); border-color: var(--pp-accent);
+            box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--pp-accent) 25%, transparent);
+        }
+        .pp-panel .table {
+            --bs-table-bg: var(--pp-surface-solid); --bs-table-color: var(--pp-text);
+            --bs-table-border-color: var(--pp-border);
+            --bs-table-striped-bg: color-mix(in srgb, var(--pp-accent) 6%, transparent);
+            --bs-table-hover-bg: color-mix(in srgb, var(--pp-accent) 10%, transparent);
+            color: var(--pp-text); margin-bottom: 0;
+        }
+        .pp-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+        #picurl, #picurl2 {
+            width: 100%; height: 200px; object-fit: contain; background: #fff;
+            border-radius: 10px; border: 1px solid var(--pp-border);
+        }
+        .info-card .thumb { height: 180px; }
+        .info-card .body { padding: 20px; }
+        .modal-body img {
+            width: 100%; max-width: 300px; display: block; margin: 0 auto 1rem;
+            border: 1px solid var(--pp-border); border-radius: 8px;
+        }
+        .status-active { color: #16a34a; font-weight: 700; }
+        .status-blocked { color: #dc2626; font-weight: 700; }
+        [data-bs-theme="dark"] .status-active { color: #4ade80; }
+        [data-bs-theme="dark"] .status-blocked { color: #f87171; }
+        .op-icon { font-size: 1.2rem; cursor: pointer; margin: 0 8px; }
+        .op-icon-block { color: #dc2626; }
+        .op-icon-activate { color: #16a34a; }
+        [data-bs-theme="dark"] .op-icon-block { color: #f87171; }
+        [data-bs-theme="dark"] .op-icon-activate { color: #4ade80; }
+
+    
+        /* ================= PulsePoint UI v2 : shared layer for every dashboard ================= */
+        :root {
+            --pp-sidebar-bg: rgba(255, 255, 255, .95);
+            --pp-panel-bg: rgba(255, 255, 255, .94);
+            --pp-soft: rgba(16, 24, 40, .045);
+            --pp-ease: cubic-bezier(.22, .61, .36, 1);
+            --pp-spring: cubic-bezier(.34, 1.56, .64, 1);
+        }
+        [data-bs-theme="dark"] {
+            --pp-sidebar-bg: rgba(16, 22, 31, .95);
+            --pp-panel-bg: rgba(23, 29, 38, .94);
+            --pp-soft: rgba(255, 255, 255, .05);
+        }
+
+        /* ---------- Keyframes ---------- */
+        @keyframes pp-fade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes pp-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+        @keyframes pp-slide { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+        @keyframes pp-pop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+        @keyframes pp-shimmer { to { background-position: 200% center; } }
+        @keyframes pp-ripple { to { transform: scale(2.6); opacity: 0; } }
+        @keyframes pp-float { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-8px, -10px); } }
+        @keyframes pp-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        @keyframes pp-spin { to { transform: rotate(360deg); } }
+        @keyframes pp-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        @keyframes pp-toast-in { from { opacity: 0; transform: translateY(16px) scale(.96); } to { opacity: 1; transform: none; } }
+        @keyframes pp-toast-out { to { opacity: 0; transform: translateY(10px); } }
+
+        /* ---------- Page transitions ---------- */
+        body {
+            animation: pp-fade .5s var(--pp-ease) backwards;
+            transition: opacity .28s ease, background-color .3s ease, color .3s ease;
+        }
+        body.pp-leaving { opacity: 0; }
+        #ppProgress {
+            position: fixed; top: 0; left: 0; height: 3px; width: 0; z-index: 2000; pointer-events: none;
+            background: linear-gradient(90deg, var(--pp-accent), #a78bfa);
+            box-shadow: 0 0 12px var(--pp-accent);
+            transition: width .5s var(--pp-ease);
+        }
+        body.pp-leaving #ppProgress { width: 90%; }
+
+        /* Staggered entrance for page blocks and cards */
+        .main > .page-head { animation: pp-rise .6s var(--pp-ease) backwards; }
+        .main > :not(.page-head):not(.row):not(.dash-footer):not(script) { animation: pp-rise .6s var(--pp-ease) 180ms backwards; }
+        .main > .row > [class*="col-"] {
+            animation: pp-rise .6s var(--pp-ease) backwards;
+            animation-delay: calc(min(var(--d, 0), 8) * 80ms + 120ms);
+        }
+        .main > .dash-footer { animation: pp-fade .8s ease .45s backwards; }
+
+        /* ---------- Sidebar (identical in light and dark, same spacing) ---------- */
+        .sidebar {
+            background: var(--pp-sidebar-bg);
+            border-right: 1px solid var(--pp-border);
+            box-shadow: 8px 0 28px rgba(16, 24, 40, .08);
+            padding: 22px 14px 18px;
+            overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
+        }
+        [data-bs-theme="dark"] .sidebar { box-shadow: 8px 0 28px rgba(0, 0, 0, .35); }
+        .sidebar .label { margin: 0 12px 14px; }
+        .sidebar nav { gap: 6px; }
+        .sidebar nav > * { animation: pp-slide .5s var(--pp-ease) backwards; animation-delay: calc(min(var(--i, 0), 8) * 60ms + 160ms); }
+        .side-link {
+            position: relative; padding: 11px 14px 11px 18px;
+            transition: background-color .2s, color .2s, transform .25s var(--pp-ease), box-shadow .25s;
+        }
+        .side-link::before {
+            content: ''; position: absolute; left: 0; top: 22%; bottom: 22%; width: 3px; border-radius: 3px;
+            background: var(--pp-accent); transform: scaleY(0); transition: transform .3s var(--pp-spring);
+        }
+        .side-link:hover { transform: translateX(4px); }
+        .side-link:hover::before { transform: scaleY(1); }
+        .side-link.active::before { display: none; }
+        .side-link.active { box-shadow: 0 8px 18px color-mix(in srgb, var(--pp-accent) 35%, transparent); }
+        .side-link i { transition: transform .35s var(--pp-spring), color .2s; }
+        .side-link:hover i { transform: scale(1.15) rotate(-8deg); }
+        .sidebar-footer { line-height: 1.5; }
+
+        /* ---------- Shared panels: same surface, border, spacing in both themes ---------- */
+        [data-bs-theme] .page-head {
+            color: var(--pp-text); text-shadow: none;
+            background: var(--pp-panel-bg); border: 1px solid var(--pp-border); border-radius: var(--pp-radius);
+            padding: 22px 26px; margin-bottom: 28px; box-shadow: var(--pp-shadow);
+            -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+        }
+        [data-bs-theme] .page-head .eyebrow { color: var(--pp-accent); opacity: 1; font-weight: 600; }
+        [data-bs-theme] .page-head h1 { margin: 6px 0; }
+        [data-bs-theme] .page-head p { color: var(--pp-muted); opacity: 1; }
+        [data-bs-theme] .page-head h1 .who {
+            color: transparent;
+            background: linear-gradient(90deg, var(--pp-accent), #a78bfa, var(--pp-accent));
+            background-size: 200% auto; -webkit-background-clip: text; background-clip: text;
+            animation: pp-shimmer 6s linear infinite;
+        }
+        [data-bs-theme] .dash-footer {
+            color: var(--pp-muted); text-shadow: none; padding: 16px; margin-top: 32px;
+            background: var(--pp-panel-bg); border: 1px solid var(--pp-border);
+            border-radius: var(--pp-radius); box-shadow: var(--pp-shadow);
+        }
+        .pp-panel { background: var(--pp-panel-bg); }
+        .dash-card { position: relative; background: var(--pp-panel-bg); }
+        .pp-panel .table tbody tr { transition: background-color .2s; }
+
+        /* ---------- Buttons ---------- */
+        .btn { position: relative; overflow: hidden; transition: transform .2s var(--pp-ease), box-shadow .25s, background-color .2s, border-color .2s, color .2s; }
+        .btn:active { transform: scale(.97); }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 20px color-mix(in srgb, var(--pp-accent) 30%, transparent); }
+        .pp-ripple {
+            position: absolute; border-radius: 50%; pointer-events: none;
+            background: rgba(255, 255, 255, .45); transform: scale(0);
+            animation: pp-ripple .65s ease-out forwards;
+        }
+        [data-bs-theme="dark"] .pp-ripple { background: rgba(11, 18, 32, .25); }
+
+        /* ---------- Dashboard cards (banner + spotlight + hover) ---------- */
+        .dash-card::after {
+            content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: 0; transition: opacity .3s;
+            background: radial-gradient(320px circle at var(--mx, 50%) var(--my, 0%), rgba(255, 255, 255, .16), transparent 70%);
+        }
+        .dash-card:hover::after { opacity: 1; }
+        .dash-card .thumb { height: 170px; overflow: visible; }
+        .dash-card .thumb .pp-banner { border-radius: var(--pp-radius) var(--pp-radius) 0 0; }
+        .dash-card .thumb .pp-banner {
+            position: absolute; inset: 0; width: 100%; height: 100%; display: block;
+            transition: transform .6s var(--pp-ease);
+        }
+        .dash-card:hover .thumb .pp-banner { transform: scale(1.06); }
+        .dash-card .thumb .icon { transition: transform .45s var(--pp-spring), box-shadow .3s; }
+        .dash-card:hover .thumb .icon {
+            transform: translateY(-4px) rotate(-6deg) scale(1.08);
+            box-shadow: 0 10px 22px color-mix(in srgb, var(--pp-accent) 45%, transparent);
+        }
+        .dash-card .body .btn { transition: transform .25s var(--pp-ease), box-shadow .25s, background-color .2s; }
+        .dash-card:hover .body .btn-primary { transform: translateY(-2px); box-shadow: 0 10px 20px color-mix(in srgb, var(--pp-accent) 35%, transparent); }
+
+        /* Banner: gradient + dot texture + floating orbs fill the card; art stays centred at a fixed size */
+        .pp-banner { position: relative; overflow: hidden; }
+        .pp-banner::before {
+            content: ''; position: absolute; inset: 0; pointer-events: none;
+            background-image: radial-gradient(rgba(255, 255, 255, .22) 1.3px, transparent 1.4px);
+            background-size: 20px 20px;
+        }
+        .pp-banner svg {
+            position: absolute; left: 50%; top: 50%; height: 84%; width: auto; aspect-ratio: 1 / 1;
+            transform: translate(-50%, -50%); overflow: visible;
+        }
+        .pp-banner .pp-orb {
+            position: absolute; right: -40px; top: -60px; width: 170px; height: 170px; border-radius: 50%;
+            background: rgba(255, 255, 255, .12); animation: pp-float 7s ease-in-out infinite;
+        }
+        .pp-banner .pp-orb.o2 {
+            left: -30px; right: auto; top: auto; bottom: -40px; width: 110px; height: 110px;
+            background: rgba(255, 255, 255, .09); animation-duration: 9s; animation-delay: -3s;
+        }
+        .pp-banner .pp-art { animation: pp-bob 5s ease-in-out infinite; }
+        .pp-banner .pp-spin { transform-box: fill-box; transform-origin: center; animation: pp-spin 16s linear infinite; }
+
+        /* ---------- Upload component (drag & drop, live preview, zoom, remove) ---------- */
+        .pp-uploader {
+            position: relative; overflow: hidden; min-height: 272px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+            padding: 22px 18px; border: 2px dashed color-mix(in srgb, var(--pp-accent) 45%, transparent);
+            border-radius: var(--pp-radius); background: var(--pp-soft);
+            transition: border-color .25s, background-color .25s, transform .25s var(--pp-ease);
+        }
+        .pp-uploader:hover, .pp-uploader.is-drag {
+            border-color: var(--pp-accent); background: color-mix(in srgb, var(--pp-accent) 8%, transparent);
+        }
+        .pp-uploader.is-drag { transform: scale(1.015); }
+        .pp-uploader .pp-file { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2; }
+        .pp-uploader .pp-ico {
+            width: 58px; height: 58px; border-radius: 16px; font-size: 1.4rem; color: #fff;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, var(--pp-accent), #7c3aed);
+            box-shadow: 0 10px 22px color-mix(in srgb, var(--pp-accent) 35%, transparent);
+            transition: transform .45s var(--pp-spring);
+        }
+        [data-bs-theme="dark"] .pp-uploader .pp-ico { color: #0b1220; }
+        .pp-uploader:hover .pp-ico { transform: translateY(-5px) rotate(-4deg); }
+        .pp-uploader.is-drag .pp-ico { animation: pp-bounce 1s ease-in-out infinite; }
+        .pp-uploader-title { display: block; margin-top: 12px; font-weight: 600; color: var(--pp-text); }
+        .pp-uploader-title u { color: var(--pp-accent); text-decoration-color: var(--pp-accent); text-underline-offset: 3px; }
+        .pp-uploader-hint { display: block; margin-top: 4px; font-size: .82rem; color: var(--pp-muted); }
+
+        .pp-preview {
+            display: flex; flex-direction: column; min-height: 272px; overflow: hidden;
+            background: var(--pp-surface-solid); border: 1px solid var(--pp-border);
+            border-radius: var(--pp-radius); box-shadow: var(--pp-shadow);
+        }
+        .pp-preview .pp-stage {
+            position: relative; flex: 1 1 auto; min-height: 220px; height: 220px;
+            display: flex; align-items: center; justify-content: center; background: var(--pp-soft);
+        }
+        .pp-preview .pp-stage::before {
+            content: ''; position: absolute; inset: 0; pointer-events: none;
+            background-image: radial-gradient(color-mix(in srgb, var(--pp-muted) 22%, transparent) 1px, transparent 1px);
+            background-size: 14px 14px;
+        }
+        .pp-preview #picurl, .pp-preview #picurl2 {
+            position: relative; width: 100%; height: 100%; padding: 12px; object-fit: contain;
+            background: transparent; border: 0; border-radius: 0;
+        }
+        .pp-preview img.pp-anim { animation: pp-pop .5s var(--pp-spring); }
+        .pp-preview-bar {
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            padding: 10px 12px; border-top: 1px solid var(--pp-border);
+        }
+        .pp-preview-name {
+            min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            font-size: .86rem; color: var(--pp-muted);
+        }
+        .pp-preview-actions { display: flex; gap: 6px; flex: 0 0 auto; }
+        .pp-preview-actions .btn { padding: .3rem .6rem; border-radius: 8px; }
+
+        #zoomImg {
+            display: block; width: auto; max-width: 100%; max-height: 70vh; margin: 0 auto;
+            padding: 0; border: 0; border-radius: 10px; object-fit: contain;
+        }
+
+        /* Toast notifications */
+        .pp-toast {
+            position: fixed; right: 20px; bottom: 20px; z-index: 2100; min-width: 260px; max-width: 360px;
+            padding: 12px 16px; border-radius: 12px; font-size: .92rem;
+            background: var(--pp-surface-solid); color: var(--pp-text);
+            border: 1px solid var(--pp-border); border-left: 4px solid #dc2626;
+            box-shadow: var(--pp-shadow-hover);
+            animation: pp-toast-in .4s var(--pp-spring) backwards;
+        }
+        .pp-toast.ok { border-left-color: #16a34a; }
+        .pp-toast.ok i { color: #16a34a; }
+        .pp-toast.out { animation: pp-toast-out .3s var(--pp-ease) forwards; }
+
+        /* Modal entrance */
+        .modal.fade .modal-dialog { transform: translateY(24px) scale(.96); transition: transform .45s var(--pp-spring), opacity .3s ease; }
+        .modal.show .modal-dialog { transform: none; }
+        .modal-content { box-shadow: var(--pp-shadow-hover); }
+
+        @media (max-width: 991.98px) {
+            .sidebar { box-shadow: 14px 0 36px rgba(0, 0, 0, .25); }
+            [data-bs-theme] .page-head { padding: 18px 20px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; }
+        }
+        
+    </style>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script>window.PP_PLACEHOLDER="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20400%20260%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%23f1f5f9%27%2F%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23e2e8f0%27%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%27400%27%20height%3D%27260%27%20fill%3D%27url%28%23g%29%27%2F%3E%3Cg%20fill%3D%27none%27%20stroke%3D%27%2394a3b8%27%20stroke-width%3D%276%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%27128%27%20y%3D%2770%27%20width%3D%27144%27%20height%3D%27112%27%20rx%3D%2714%27%2F%3E%3Ccircle%20cx%3D%27168%27%20cy%3D%27112%27%20r%3D%2714%27%2F%3E%3Cpath%20d%3D%27M136%20172%20L178%20134%20L204%20156%20L226%20138%20L264%20172%27%2F%3E%3C%2Fg%3E%3Ctext%20x%3D%27200%27%20y%3D%27228%27%20text-anchor%3D%27middle%27%20font-family%3D%27Segoe%20UI%2CArial%2Csans-serif%27%20font-size%3D%2717%27%20fill%3D%27%2364748b%27%3ENo%20image%20selected%3C%2Ftext%3E%3C%2Fsvg%3E";</script>
+</head>
+
+<body>
+
+    <!-- ================= TOP BAR ================= -->
+    <header class="topbar">
+        <div class="topbar-left">
+            <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <a class="brand" href="dash_player.html">
+                <img src="/pics/Pulsepoint5.jpg" alt="PulsePoint logo"><span>PulsePoint</span>
+            </a>
+        </div>
+
+        <div class="topbar-right">
+            <button type="button" class="theme-switch" id="themeToggle" role="switch" aria-checked="false"
+                aria-label="Dark theme" title="Toggle dark theme">
+                <i class="fa-solid fa-sun ts-track-icon ts-track-sun" aria-hidden="true"></i>
+                <i class="fa-solid fa-moon ts-track-icon ts-track-moon" aria-hidden="true"></i>
+                <span class="ts-knob" aria-hidden="true">
+                    <i class="fa-solid fa-sun icon-sun"></i>
+                    <i class="fa-solid fa-moon icon-moon"></i>
+                </span>
+            </button>
+
+            <div class="user-chip" title="Signed in user">
+                <div class="avatar" id="avatarInitial">U</div>
+                <span class="name" id="chipEmail">Guest</span>
+            </div>
+
+            <button class="btn btn-logout" id="logoutButton" type="button">
+                <i class="fa-solid fa-right-from-bracket"></i> <span>Logout</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- ================= SIDEBAR ================= -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    <aside class="sidebar" id="sidebar" aria-label="Sidebar navigation">
+        <div class="label">Player Menu</div>
+        <nav>
+            <a class="side-link" href="dash_player.html"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+            <a class="side-link active" href="profile-player.html" aria-current="page"><i class="fa-solid fa-user"></i> Player Profile</a>
+            <a class="side-link" href="/tournament-finder"><i class="fa-solid fa-trophy"></i> Tournaments</a>
+            <a class="side-link" href="/my-registrations"><i class="fa-solid fa-ticket"></i> My Registrations</a>
+            <button class="side-link" type="button" data-bs-toggle="modal" data-bs-target="#settingsModal"><i class="fa-solid fa-gear"></i> Account Settings</button>
+        </nav>
+        <div class="sidebar-footer">
+            <i class="fa-solid fa-circle-info me-1"></i> Find tournaments in your city and register in a few clicks.
+        </div>
+    </aside>
+
+    <!-- ================= MAIN ================= -->
+    <main class="main" id="main" >
+        <div class="page-head">
+            <div class="eyebrow">Player · Profile</div>
+            <h1>Player Profile</h1>
+            <p>View and update your personal details, games and documents.</p>
+        </div>
+
+        <form class="pp-panel row g-3" enctype="multipart/form-data" method="post" action="/do_player-details">
+            <input type="hidden" id="hdn" name="hdn">
+            <input type="hidden" id="removePic1" name="removePic1" value="0">
+            <input type="hidden" id="removePic2" name="removePic2" value="0">
+            <input type="hidden" name="recordType" value="player">
+
+            <div class="col-12">
+                <div class="d-flex align-items-center mb-1">
+                    <label for="emailid" class="form-label mb-0">Email ID:</label>
+                    <button type="button" class="btn btn-primary btn-sm ms-2" id="search">Search</button>
+                </div>
+                <input type="email" class="form-control" id="emailid" name="emailid" required>
+            </div>
+            <div class="col-md-6">
+                <label for="address" class="form-label">Address:</label>
+                <input type="text" class="form-control" id="address" name="address" required>
+            </div>
+            <div class="col-md-6">
+                <label for="inputState" class="form-label">State:</label>
+                <select id="inputState" name="inputState" class="form-select">
+                    <option selected>Choose...</option>
+                    <option>ANDHRA PRADESH</option><option>ARUNACHAL PRADESH</option><option>ASSAM</option>
+                    <option>BIHAR</option><option>CHHATTISGARH</option><option>GOA</option><option>GUJARAT</option>
+                    <option>HARYANA</option><option>HIMACHAL PRADESH</option><option>JHARKHAND</option>
+                    <option>KARNATAKA</option><option>KERALA</option><option>MADHYA PRADESH</option>
+                    <option>MAHARASHTRA</option><option>MANIPUR</option><option>MEGHALAYA</option>
+                    <option>MIZORAM</option><option>NAGALAND</option><option>ODISHA</option><option>PUNJAB</option>
+                    <option>RAJASTHAN</option><option>SIKKIM</option><option>TAMIL NADU</option><option>TELANGANA</option>
+                    <option>TRIPURA</option><option>UTTAR PRADESH</option><option>UTTARAKHAND</option>
+                    <option>WEST BENGAL</option><option>DELHI</option><option>JAMMU AND KASHMIR</option>
+                    <option>LADAKH</option><option>PUDUCHERRY</option><option>CHANDIGARH</option>
+                    <option>ANDAMAN AND NICOBAR ISLANDS</option>
+                    <option>DADRA AND NAGAR HAVELI AND DAMAN AND DIU</option><option>LAKSHADWEEP</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label for="inputCity" class="form-label">City:</label>
+                <input type="text" class="form-control" id="inputCity" name="inputCity">
+            </div>
+            <div class="col-md-6">
+                <label for="inputZip" class="form-label">ZIP:</label>
+                <input type="text" class="form-control" id="inputZip" name="inputZip">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Games You Play:</label>
+                <input type="text" class="form-control" id="games" name="games" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Contact No.:</label>
+                <input type="number" class="form-control" id="contact" name="contact" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="adhaarupload">Aadhaar card</label>
+                <div class="pp-uploader">
+                    <input type="file" class="pp-file" id="adhaarupload" name="adhaarupload" accept="image/*" onchange="showPrev(adhaarupload,picurl)" aria-label="Aadhaar card">
+                    <span class="pp-ico"><i class="fa-solid fa-cloud-arrow-up"></i></span>
+                    <span class="pp-uploader-title">Drag &amp; drop or <u>browse</u> to upload</span>
+                    <span class="pp-uploader-hint">JPG, PNG or WEBP &middot; up to 5 MB</span>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-label">Preview</div>
+                <div class="pp-preview">
+                    <div class="pp-stage">
+                        <img id="picurl" src="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20400%20260%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%23f1f5f9%27%2F%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23e2e8f0%27%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%27400%27%20height%3D%27260%27%20fill%3D%27url%28%23g%29%27%2F%3E%3Cg%20fill%3D%27none%27%20stroke%3D%27%2394a3b8%27%20stroke-width%3D%276%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%27128%27%20y%3D%2770%27%20width%3D%27144%27%20height%3D%27112%27%20rx%3D%2714%27%2F%3E%3Ccircle%20cx%3D%27168%27%20cy%3D%27112%27%20r%3D%2714%27%2F%3E%3Cpath%20d%3D%27M136%20172%20L178%20134%20L204%20156%20L226%20138%20L264%20172%27%2F%3E%3C%2Fg%3E%3Ctext%20x%3D%27200%27%20y%3D%27228%27%20text-anchor%3D%27middle%27%20font-family%3D%27Segoe%20UI%2CArial%2Csans-serif%27%20font-size%3D%2717%27%20fill%3D%27%2364748b%27%3ENo%20image%20selected%3C%2Ftext%3E%3C%2Fsvg%3E" alt="Aadhaar card preview" onerror="this.onerror=null;this.src=PP_PLACEHOLDER">
+                    </div>
+                    <div class="pp-preview-bar">
+                        <span class="pp-preview-name">No file selected</span>
+                        <div class="pp-preview-actions">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="zoomPreview(picurl)" title="Enlarge preview" aria-label="Enlarge preview"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearPrev(adhaarupload,picurl)" title="Remove file" aria-label="Remove file"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="pic_upload">Profile photo</label>
+                <div class="pp-uploader">
+                    <input type="file" class="pp-file" id="pic_upload" name="pic_upload" accept="image/*" onchange="showPrev(pic_upload,picurl2)" aria-label="Profile photo">
+                    <span class="pp-ico"><i class="fa-solid fa-cloud-arrow-up"></i></span>
+                    <span class="pp-uploader-title">Drag &amp; drop or <u>browse</u> to upload</span>
+                    <span class="pp-uploader-hint">JPG, PNG or WEBP &middot; up to 5 MB</span>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-label">Preview</div>
+                <div class="pp-preview">
+                    <div class="pp-stage">
+                        <img id="picurl2" src="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20400%20260%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%23f1f5f9%27%2F%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23e2e8f0%27%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%27400%27%20height%3D%27260%27%20fill%3D%27url%28%23g%29%27%2F%3E%3Cg%20fill%3D%27none%27%20stroke%3D%27%2394a3b8%27%20stroke-width%3D%276%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%27128%27%20y%3D%2770%27%20width%3D%27144%27%20height%3D%27112%27%20rx%3D%2714%27%2F%3E%3Ccircle%20cx%3D%27168%27%20cy%3D%27112%27%20r%3D%2714%27%2F%3E%3Cpath%20d%3D%27M136%20172%20L178%20134%20L204%20156%20L226%20138%20L264%20172%27%2F%3E%3C%2Fg%3E%3Ctext%20x%3D%27200%27%20y%3D%27228%27%20text-anchor%3D%27middle%27%20font-family%3D%27Segoe%20UI%2CArial%2Csans-serif%27%20font-size%3D%2717%27%20fill%3D%27%2364748b%27%3ENo%20image%20selected%3C%2Ftext%3E%3C%2Fsvg%3E" alt="Profile photo preview" onerror="this.onerror=null;this.src=PP_PLACEHOLDER">
+                    </div>
+                    <div class="pp-preview-bar">
+                        <span class="pp-preview-name">No file selected</span>
+                        <div class="pp-preview-actions">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="zoomPreview(picurl2)" title="Enlarge preview" aria-label="Enlarge preview"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearPrev(pic_upload,picurl2)" title="Remove file" aria-label="Remove file"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12">
+                <label for="otherinfo" class="form-label">Other Info:</label>
+                <textarea class="form-control" id="otherinfo" rows="5" name="otherinfo"></textarea>
+            </div>
+            <div class="col-12 pp-actions">
+                <button type="submit" class="btn btn-primary" id="submit" name="submit">Submit</button>
+                <button type="submit" class="btn btn-primary" id="update" name="update" value="Update" formaction="/update-user">UPDATE</button>
+            </div>
+            <div class="col-12">
+                <div class="form-status" id="detailsStatus" role="status" aria-live="polite"></div>
+            </div>
+        </form>
+
+        <div class="dash-footer">&copy; <span id="year"></span> PulsePoint. All rights reserved.</div>
+    </main>
+
+    <!-- ================= IMAGE PREVIEW MODAL ================= -->
+    <div class="modal fade" id="imgZoomModal" tabindex="-1" aria-labelledby="imgZoomLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imgZoomLabel"><i class="fa-solid fa-image me-2"></i>Uploaded file preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center p-3">
+                    <img id="zoomImg" src="" alt="Uploaded file preview">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+
+    <!-- ================= SETTINGS MODAL ================= -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="settingsModalLabel">Change Password</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="changePasswordForm">
+                        <div class="mb-3">
+                            <label for="emailAddress" class="form-label">Email address</label>
+                            <input type="email" class="form-control" id="emailAddress" disabled readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="oldPassword" class="form-label">Old Password</label>
+                            <div class="pw-wrap">
+                                <input type="password" class="form-control" id="oldPassword" required autocomplete="current-password">
+                                <i class="fa-solid fa-eye-slash" id="toggleOldPassword"></i>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label">New Password</label>
+                            <div class="pw-wrap">
+                                <input type="password" class="form-control" id="newPassword" required autocomplete="new-password">
+                                <i class="fa-solid fa-eye-slash" id="toggleNewPassword"></i>
+                            </div>
+                            <ul class="pw-rules" id="passwordRules">
+                                <li><span id="ruleLength">&#10005;</span> At least 6 characters</li>
+                                <li><span id="ruleNumber">&#10005;</span> At least one number</li>
+                                <li><span id="ruleSpecial">&#10005;</span> At least one special character</li>
+                            </ul>
+                        </div>
+                        <div class="form-status" id="pwStatus" role="status" aria-live="polite"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" form="changePasswordForm" class="btn btn-primary">Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>
+    <script>
+        // ---------- Theme toggle (shares 'pp-theme' with every PulsePoint page) ----------
+        (function () {
+            var root = document.documentElement;
+            var btn = document.getElementById('themeToggle');
+            function apply(theme) {
+                root.setAttribute('data-bs-theme', theme);
+                var dark = theme === 'dark';
+                btn.setAttribute('aria-checked', String(dark));
+                btn.setAttribute('title', dark ? 'Dark theme on - click to switch to light' : 'Light theme on - click to switch to dark');
+            }
+            apply(root.getAttribute('data-bs-theme'));
+            btn.addEventListener('click', function () {
+                var next = root.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+                apply(next);
+                try { localStorage.setItem('pp-theme', next); } catch (e) { }
+            });
+        })();
+
+        // ---------- Sidebar (mobile) ----------
+        (function () {
+            var menuBtn = document.getElementById('menuBtn');
+            function setOpen(open) {
+                document.body.classList.toggle('sidebar-open', open);
+                menuBtn.setAttribute('aria-expanded', String(open));
+            }
+            menuBtn.addEventListener('click', function () { setOpen(!document.body.classList.contains('sidebar-open')); });
+            document.getElementById('sidebarBackdrop').addEventListener('click', function () { setOpen(false); });
+            document.querySelectorAll('#sidebar .side-link').forEach(function (l) {
+                l.addEventListener('click', function () { setOpen(false); });
+            });
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setOpen(false); });
+        })();
+
+        // ---------- Welcome message, logout ----------
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('year').textContent = new Date().getFullYear();
+
+            var email = null;
+            try { email = localStorage.getItem('loggedInUserEmail'); } catch (e) { }
+            var shown = email || 'Guest';
+            var we = document.getElementById('welcomeEmail'); if (we) we.textContent = shown;
+            document.getElementById('chipEmail').textContent = shown;
+            document.getElementById('avatarInitial').textContent = shown.charAt(0).toUpperCase();
+
+            document.getElementById('logoutButton').addEventListener('click', function () {
+                localStorage.removeItem('loggedInUserEmail');
+                window.location.href = '/';
+            });
+        });
+
+        // ---------- Password eye icons ----------
+        function setupPasswordToggle(inputId, toggleId) {
+            var input = document.getElementById(inputId);
+            var icon = document.getElementById(toggleId);
+            icon.addEventListener('click', function () {
+                input.type = input.type === 'password' ? 'text' : 'password';
+                icon.classList.toggle('fa-eye-slash');
+                icon.classList.toggle('fa-eye');
+            });
+        }
+        setupPasswordToggle('oldPassword', 'toggleOldPassword');
+        setupPasswordToggle('newPassword', 'toggleNewPassword');
+
+        // ---------- Change password (same endpoint as before) ----------
+        (function () {
+            var modalEl = document.getElementById('settingsModal');
+            var form = document.getElementById('changePasswordForm');
+            var emailField = document.getElementById('emailAddress');
+            var status = document.getElementById('pwStatus');
+
+            modalEl.addEventListener('show.bs.modal', function () {
+                emailField.value = localStorage.getItem('loggedInUserEmail') || 'Not Found';
+                status.textContent = ''; status.className = 'form-status';
+            });
+
+            var newPassword = document.getElementById('newPassword');
+            var ruleLength = document.getElementById('ruleLength');
+            var ruleNumber = document.getElementById('ruleNumber');
+            var ruleSpecial = document.getElementById('ruleSpecial');
+            function updatePasswordRules() {
+                var value = newPassword.value;
+                var checks = [
+                    [ruleLength, value.length >= 6 && value.length <= 20],
+                    [ruleNumber, /\d/.test(value)],
+                    [ruleSpecial, /[^A-Za-z0-9\s]/.test(value)]
+                ];
+                checks.forEach(function (item) {
+                    item[0].textContent = item[1] ? String.fromCharCode(10003) : String.fromCharCode(10005);
+                    item[0].style.color = item[1] ? '#16a34a' : '#6b7280';
+                });
+            }
+            newPassword.addEventListener('input', updatePasswordRules);
+            updatePasswordRules();
+
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                updatePasswordRules();
+                if (newPassword.value.length < 6 || newPassword.value.length > 20 ||
+                    !/\d/.test(newPassword.value) || !/[^A-Za-z0-9\s]/.test(newPassword.value)) {
+                    status.textContent = 'New password must have at least 6 characters, one number and one special character.';
+                    status.className = 'form-status error';
+                    return;
+                }
+                var payload = {
+                    email: emailField.value,
+                    oldPassword: document.getElementById('oldPassword').value,
+                    newPassword: document.getElementById('newPassword').value
+                };
+                fetch('/change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                .then(function (r) { return r.text(); })
+                .then(function (data) {
+                    var ok = data.indexOf('successfully') !== -1;
+                    status.textContent = data;
+                    status.className = 'form-status ' + (ok ? 'success' : 'error');
+                    if (ok) {
+                        form.reset();
+                        setTimeout(function () { bootstrap.Modal.getInstance(modalEl).hide(); }, 1200);
+                    }
+                })
+                .catch(function (err) {
+                    console.error('Error:', err);
+                    status.textContent = 'An error occurred. Please try again.';
+                    status.className = 'form-status error';
+                });
+            });
+        })();
+    </script>
+<script>
+        
+
+
+        $(document).ready(function () {
+            var detailsForm = document.querySelector('form[action="/do_player-details"]');
+            var detailsStatus = $("#detailsStatus");
+            function showDetailsStatus(message, success) {
+                detailsStatus.text(message)
+                    .removeClass("success error")
+                    .addClass(success ? "success" : "error");
+            }
+
+            $("#emailid").blur(function () {
+                let email = $(this).val().trim();
+                let regex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
+                if (email === "") {
+                    showDetailsStatus("Please enter your email address.", false);
+
+                }
+                else if (regex.test(email) == false) {
+                    showDetailsStatus("Please enter a valid email address.", false);
+
+                }
+
+
+
+
+
+
+                // $("#register").click(function () {
+                //          let obj = {
+                //         type: "get",
+                //         url: "/do_registration",
+                //         data: {
+                //             emailid: $("#emailid").val(),
+                //             orgname: $("#orgname").val(),
+                //             regnumber: $("#regnumber").val(),
+                //             address: $("#address").val(),
+                //             sports: $("#sports").val(),
+                //             website: $("#website").val(),
+                //             insta: $("#insta").val(),
+                //             head: $("#head").val(),
+                //             contact: $("#contact").val(),
+
+                //         }
+                //     }
+                //     $.ajax(obj).then(function (response) {
+                //         alert(response);
+                //     }).fail(function (err) {
+                //         alert(err);
+                //     })
+                // })
+            });
+
+            $("#search").click(function () {
+
+                let obj = {
+                    type: "get",
+                    url: "/get-player-details",
+                    data: {
+                        emailid: $("#emailid").val()
+                        //txtPwd:$("#txtPwd").val()
+                    }
+                }
+
+                $.ajax(obj).then(function (response) {
+                    let address = response.address || "";
+                    let city = response.city || "";
+                    let state = response.state || "";
+                    let zip = response.zip || "";
+                    let games = response.games || "";
+                    let contact = response.contact || "";
+                    let otherinfo = response.otherinfo || "";
+                    let picurl1 = response.aadhaarPhoto || "";
+                    let picurl2 = response.profilePhoto || "";
+
+                    $("#address").val(address);
+                    $("#inputCity").val(city);
+                    if (state && !$("#inputState option").filter(function () { return this.value === state; }).length) {
+                        $("#inputState").append($("<option>").val(state).text(state));
+                    }
+                    $("#inputState").val(state);
+                    $("#inputZip").val(zip);
+                    $("#games").val(games);
+                    $("#contact").val(contact);
+                    $("#otherinfo").val(otherinfo);
+                    $("#picurl").prop("src", picurl1 && picurl1 !== "nopic.jpg" ? picurl1 : PP_PLACEHOLDER);
+                    $("#picurl2").prop("src", picurl2 && picurl2 !== "nopic.jpg" ? picurl2 : PP_PLACEHOLDER);
+                    $("#hdn").val(picurl1);
+                    var missing = [];
+                    if (!address) missing.push("address");
+                    if (!state) missing.push("state");
+                    if (!city) missing.push("city");
+                    if (!zip) missing.push("ZIP");
+                    if (!contact) missing.push("contact number");
+                    if (!otherinfo) missing.push("other information");
+                    showDetailsStatus(
+                        missing.length
+                            ? "Saved details loaded. Please complete: " + missing.join(", ") + "."
+                            : "Saved details loaded. You can edit and update them.",
+                        !missing.length
+                    );
+                }).fail(function (err) { showDetailsStatus(err.responseText || "No saved details found for this email.", false); })
+            });
+
+            $(detailsForm).on("submit", function (event) {
+                event.preventDefault();
+                var submitButton = event.originalEvent.submitter;
+                var endpoint = submitButton && submitButton.hasAttribute("formaction")
+                    ? submitButton.getAttribute("formaction")
+                    : this.action;
+                var button = $(submitButton || this).prop("disabled", true);
+                showDetailsStatus("Saving your player details...", true);
+                fetch(endpoint, { method: "POST", body: new FormData(this) })
+                    .then(function (response) {
+                        return response.text().then(function (message) {
+                            if (!response.ok) throw new Error(message);
+                            return message;
+                        });
+                    })
+                    .then(function (message) {
+                        showDetailsStatus("✓ " + message, true);
+                    })
+                    .catch(function (error) {
+                        showDetailsStatus(error.message || "Unable to save details.", false);
+                    })
+                    .finally(function () { button.prop("disabled", false); });
+            });
+        });
+
+    </script>
+    <script id="pp-ui-v2">
+    (function () {
+        'use strict';
+        var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        // Stagger indexes for cards and sidebar items
+        document.querySelectorAll('.main .row > [class*="col-"]').forEach(function (el, i) { el.style.setProperty('--d', i); });
+        document.querySelectorAll('#sidebar nav > *').forEach(function (el, i) { el.style.setProperty('--i', i); });
+
+        // Navigation progress bar
+        var bar = document.createElement('div');
+        bar.id = 'ppProgress';
+        document.body.appendChild(bar);
+
+        // Smooth fade between pages
+        document.addEventListener('click', function (e) {
+            var a = e.target.closest ? e.target.closest('a[href]') : null;
+            if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            if (a.target === '_blank' || a.hasAttribute('download')) return;
+            var href = a.getAttribute('href');
+            if (!href || href.charAt(0) === '#' || a.origin !== window.location.origin) return;
+            e.preventDefault();
+            document.body.classList.add('pp-leaving');
+            setTimeout(function () { window.location.href = a.href; }, reduce ? 0 : 280);
+        });
+        window.addEventListener('pageshow', function (e) { if (e.persisted) document.body.classList.remove('pp-leaving'); });
+
+        // Ripple on buttons
+        document.addEventListener('click', function (e) {
+            var b = e.target.closest ? e.target.closest('.btn') : null;
+            if (!b || b.disabled || reduce) return;
+            var r = b.getBoundingClientRect(), s = Math.max(r.width, r.height), w = document.createElement('span');
+            w.className = 'pp-ripple';
+            w.style.width = s + 'px';
+            w.style.height = s + 'px';
+            w.style.left = (e.clientX - r.left - s / 2) + 'px';
+            w.style.top = (e.clientY - r.top - s / 2) + 'px';
+            b.appendChild(w);
+            setTimeout(function () { w.remove(); }, 650);
+        });
+
+        // Spotlight that follows the pointer over dashboard cards
+        document.querySelectorAll('.dash-card').forEach(function (card) {
+            card.addEventListener('pointermove', function (e) {
+                var r = card.getBoundingClientRect();
+                card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+                card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+            });
+        });
+
+        // ---------- Upload helpers ----------
+        var MAX = 5 * 1024 * 1024;
+        function fmt(b) { return b < 1048576 ? Math.round(b / 1024) + ' KB' : (b / 1048576).toFixed(1) + ' MB'; }
+        function setName(img, text) {
+            var c = img.closest('.pp-preview'), n = c && c.querySelector('.pp-preview-name');
+            if (n) n.textContent = text;
+        }
+        function animateImg(img) {
+            img.classList.remove('pp-anim');
+            void img.offsetWidth;
+            img.classList.add('pp-anim');
+        }
+
+        window.ppToast = function (msg, ok) {
+            var t = document.createElement('div');
+            t.className = 'pp-toast' + (ok ? ' ok' : '');
+            t.setAttribute('role', 'status');
+            t.innerHTML = '<i class="fa-solid ' + (ok ? 'fa-circle-check' : 'fa-circle-exclamation') + ' me-2"></i>';
+            t.appendChild(document.createTextNode(msg));
+            document.body.appendChild(t);
+            setTimeout(function () {
+                t.classList.add('out');
+                setTimeout(function () { t.remove(); }, 320);
+            }, 3200);
+        };
+
+        window.showPrev = function (input, img) {
+            var file = input.files && input.files[0];
+            if (!file) return;
+            if (!/^image\//.test(file.type)) {
+                window.ppToast('Please choose an image file (JPG, PNG or WEBP).', false);
+                input.value = '';
+                return;
+            }
+            if (file.size > MAX) {
+                window.ppToast('That image is larger than 5 MB. Please choose a smaller file.', false);
+                input.value = '';
+                return;
+            }
+            if (img._ppUrl) URL.revokeObjectURL(img._ppUrl);
+            img._ppUrl = URL.createObjectURL(file);
+            img.src = img._ppUrl;
+            document.getElementById(input.id === 'pic_upload' ? 'removePic2' : 'removePic1').value = '0';
+            setName(img, file.name + ' \u00B7 ' + fmt(file.size));
+            animateImg(img);
+            window.ppToast('Image uploaded. Preview updated.', true);
+        };
+
+        window.clearPrev = function (input, img) {
+            input.value = '';
+            document.getElementById(input.id === 'pic_upload' ? 'removePic2' : 'removePic1').value = '1';
+            if (img._ppUrl) { URL.revokeObjectURL(img._ppUrl); img._ppUrl = null; }
+            img.src = window.PP_PLACEHOLDER;
+            setName(img, 'No file selected');
+            animateImg(img);
+        };
+
+        window.zoomPreview = function (img) {
+            var z = document.getElementById('zoomImg'), m = document.getElementById('imgZoomModal');
+            if (!z || !m || !window.bootstrap) { window.open(img.src, '_blank'); return; }
+            z.src = img.src;
+            window.bootstrap.Modal.getOrCreateInstance(m).show();
+        };
+
+        // Drag-over highlight for upload zones
+        document.querySelectorAll('.pp-uploader').forEach(function (zone) {
+            ['dragenter', 'dragover'].forEach(function (t) {
+                zone.addEventListener(t, function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    zone.classList.add('is-drag');
+                });
+            });
+            zone.addEventListener('dragleave', function (e) {
+                e.preventDefault();
+                zone.classList.remove('is-drag');
+            });
+            zone.addEventListener('drop', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                zone.classList.remove('is-drag');
+                var input = zone.querySelector('input[type="file"]');
+                var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+                if (!input || !file) return;
+                var transfer = new DataTransfer();
+                transfer.items.add(file);
+                input.files = transfer.files;
+                var previewId = input.id === 'pic_upload' ? 'picurl2' : 'picurl';
+                showPrev(input, document.getElementById(previewId));
+            });
+        });
+    })();
+    </script>
+
+<!-- ===== PulsePoint toast notifications (green = success, red = error) ===== -->
+<style id="pp-toast-v3-css">
+    .ppt-stack { position: fixed; top: 16px; right: 16px; z-index: 3000; display: flex; flex-direction: column; gap: 10px; width: min(380px, calc(100vw - 24px)); pointer-events: none; }
+    .ppt { pointer-events: auto; display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 12px; color: #fff; font-size: .93rem; line-height: 1.35; box-shadow: 0 10px 28px rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.18); animation: ppt-in .35s cubic-bezier(.2,.9,.3,1.2) backwards; word-break: break-word; }
+    .ppt-ok  { background: #16a34a; }
+    .ppt-err { background: #dc2626; }
+    .ppt-ico { flex: 0 0 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,.22); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: .8rem; margin-top: 1px; }
+    .ppt-msg { flex: 1; }
+    .ppt-x { flex: 0 0 auto; background: none; border: 0; color: #fff; opacity: .8; font-size: 1.2rem; line-height: 1; padding: 0 2px; cursor: pointer; }
+    .ppt-x:hover { opacity: 1; }
+    .ppt.ppt-out { animation: ppt-out .25s ease forwards; }
+    @keyframes ppt-in  { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+    @keyframes ppt-out { to { opacity: 0; transform: translateX(24px); } }
+    @media (prefers-reduced-motion: reduce) { .ppt, .ppt.ppt-out { animation: none; } }
+    /* inline status lines are now shown as toasts instead */
+    .form-status { display: none !important; }
+</style>
+<script id="pp-toast-v3">
+(function () {
+    'use strict';
+    if (window.__ppToastV3) return;
+    window.__ppToastV3 = true;
+
+    var stack;
+    function getStack() {
+        if (!stack || !stack.isConnected) {
+            stack = document.createElement('div');
+            stack.className = 'ppt-stack';
+            document.body.appendChild(stack);
+        }
+        return stack;
+    }
+
+    function close(t) {
+        if (!t || t._gone) return;
+        t._gone = true;
+        t.classList.add('ppt-out');
+        setTimeout(function () { t.remove(); }, 260);
+    }
+
+    function show(msg, ok) {
+        msg = String(msg == null ? '' : msg).trim();
+        if (!msg) return;
+        var s = getStack();
+        var kids = s.children;
+        for (var i = 0; i < kids.length; i++) {            // don't stack identical toasts
+            if (kids[i]._msg === msg && kids[i]._ok === ok && !kids[i]._gone) return;
+        }
+        while (kids.length >= 4) s.removeChild(kids[0]);
+
+        var t = document.createElement('div');
+        t.className = 'ppt ' + (ok ? 'ppt-ok' : 'ppt-err');
+        t.setAttribute('role', ok ? 'status' : 'alert');
+        t._msg = msg; t._ok = ok;
+
+        var ico = document.createElement('span');
+        ico.className = 'ppt-ico';
+        ico.setAttribute('aria-hidden', 'true');
+        ico.textContent = ok ? '\u2713' : '!';
+        var txt = document.createElement('span');
+        txt.className = 'ppt-msg';
+        txt.textContent = msg;
+        var x = document.createElement('button');
+        x.type = 'button';
+        x.className = 'ppt-x';
+        x.setAttribute('aria-label', 'Dismiss');
+        x.innerHTML = '&times;';
+        x.addEventListener('click', function () { close(t); });
+
+        t.appendChild(ico); t.appendChild(txt); t.appendChild(x);
+        s.appendChild(t);
+        setTimeout(function () { close(t); }, ok ? 4000 : 5500);
+    }
+
+    var ERR = /error|fail|invalid|inavlid|incorrect|cannot|can't|could not|unable|not found|not updated|no saved|required|wrong|taken|already|blocked|too long|too large|must |please (enter|fill|choose|select)|^fill |^invalid$/i;
+
+    // explicit: ppToast(message, true|false)
+    window.ppToast = function (msg, ok) { show(msg, !!ok); };
+    // automatic: picks green/red from the wording unless ok is given
+    window.ppNotify = function (msg, ok) {
+        if (msg && typeof msg === 'object') {          // a failed request object is always an error
+            msg = msg.responseText || msg.statusText || msg.message || 'Something went wrong. Please try again.';
+            if (ok === undefined) ok = false;
+        }
+        msg = String(msg == null ? '' : msg).trim();
+        if (ok === undefined) ok = !ERR.test(msg);
+        show(msg, ok);
+    };
+
+    // Mirror every inline .form-status line into a toast
+    function watch(el) {
+        function run(records) {
+            var txt = (el.textContent || '').trim();
+            var textChanged = !records || records.some(function (r) { return r.type !== 'attributes'; });
+            if (!txt) { el._last = ''; return; }
+            if (!textChanged && el._last === txt) return;
+            el._last = txt;
+            if (/^(saving|loading|please wait)/i.test(txt)) return;
+            var ok = el.classList.contains('success') ? true : el.classList.contains('error') ? false : undefined;
+            window.ppNotify(txt, ok);
+        }
+        new MutationObserver(run).observe(el, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    }
+    function init() { document.querySelectorAll('.form-status').forEach(watch); }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
+</body>
+
+</html>
