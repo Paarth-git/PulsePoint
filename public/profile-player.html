@@ -549,6 +549,18 @@
             min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
             font-size: .86rem; color: var(--pp-muted);
         }
+        form.pp-panel > .player-upload,
+        form.pp-panel > .player-preview {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+        @media (max-width: 575.98px) {
+            form.pp-panel > .player-upload,
+            form.pp-panel > .player-preview {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+        }
         .pp-preview-actions { display: flex; gap: 6px; flex: 0 0 auto; }
         .pp-preview-actions .btn { padding: .3rem .6rem; border-radius: 8px; }
 
@@ -704,7 +716,7 @@
                 <label class="form-label">Contact No.:</label>
                 <input type="number" class="form-control" id="contact" name="contact" required>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-6 player-upload">
                 <label class="form-label" for="adhaarupload">Aadhaar card</label>
                 <div class="pp-uploader">
                     <input type="file" class="pp-file" id="adhaarupload" name="adhaarupload" accept="image/*" onchange="showPrev(adhaarupload,picurl)" aria-label="Aadhaar card">
@@ -713,7 +725,7 @@
                     <span class="pp-uploader-hint">JPG, PNG or WEBP &middot; up to 5 MB</span>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-6 player-preview">
                 <div class="form-label">Preview</div>
                 <div class="pp-preview">
                     <div class="pp-stage">
@@ -728,7 +740,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-6 player-upload">
                 <label class="form-label" for="pic_upload">Profile photo</label>
                 <div class="pp-uploader">
                     <input type="file" class="pp-file" id="pic_upload" name="pic_upload" accept="image/*" onchange="showPrev(pic_upload,picurl2)" aria-label="Profile photo">
@@ -737,7 +749,7 @@
                     <span class="pp-uploader-hint">JPG, PNG or WEBP &middot; up to 5 MB</span>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-6 player-preview">
                 <div class="form-label">Preview</div>
                 <div class="pp-preview">
                     <div class="pp-stage">
