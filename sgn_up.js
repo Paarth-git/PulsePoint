@@ -21,17 +21,23 @@ app.set("trust proxy", 1);
 // ---------------------------------------------------------------- safety net
 // A single unexpected error must never kill the server (that was making every
 // later signup/login fail silently).
-process.on("unhandledRejection", function (err) { console.log("UNHANDLED REJECTION:", err && err.message ? err.message : err); });
-process.on("uncaughtException", function (err) { console.log("UNCAUGHT EXCEPTION:", err && err.message ? err.message : err); });
+process.on("unhandledRejection", function (err) {
+    console.log("UNHANDLED REJECTION:", err && err.stack ? err.stack : err);
+});
+process.on("uncaughtException", function (err) {
+    console.log("UNCAUGHT EXCEPTION:", err && err.stack ? err.stack : err);
+});
 
 // ---------------------------------------------------------------- config
 // DB_* is convenient locally. Railway provides the equivalent MYSQL* names,
 // so both naming conventions are accepted without copying credentials into code.
 var dbConfig = {
-    host: process.env.DB_HOST || process.env.MYSQLHOST || "127.0.0.1",
+    // MYSQL_PUBLIC_* is required when the app is hosted outside Railway
+    // (for example on Render); MYSQLHOST is Railway's private-network host.
+    host: process.env.MYSQL_PUBLIC_HOST || process.env.MYSQLHOST || process.env.DB_HOST || "127.0.0.1",
     user: process.env.DB_USER || process.env.MYSQLUSER || "root",
     password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || "",
-    port: Number(process.env.DB_PORT || process.env.MYSQLPORT) || 3306,
+    port: Number(process.env.MYSQL_PUBLIC_PORT || process.env.MYSQLPORT || process.env.DB_PORT) || 3306,
     connectTimeout: 10000
 };
 var databaseName = process.env.DB_NAME || process.env.MYSQLDATABASE || "sports_portal";
@@ -198,19 +204,15 @@ function ensureSchema(done) {
 }
 
 function initializeDatabase(done) {
-    var connection = mysql2.createConnection(dbConfig);
-    var safeName = databaseName.replace(/`/g, "``");
-    connection.query("CREATE DATABASE IF NOT EXISTS `" + safeName + "`", function (createErr) {
-        connection.end();
-        if (createErr) return done(createErr);
-        pool.getConnection(function (err, dbConnection) {
-            if (err) return done(err);
-            console.log("Local MySQL Connected Successfully! Host:", dbConnection.config.host);
-            dbConnection.release();
-            ensureSchema(function (schemaErr) {
-                if (schemaErr) return done(schemaErr);
-                done();
-            });
+    // The deployed database is provisioned by Railway. Use the configured
+    // pool directly instead of opening and closing a second connection.
+    pool.getConnection(function (err, dbConnection) {
+        if (err) return done(err);
+        console.log("MySQL connected successfully. Host:", dbConnection.config.host);
+        dbConnection.release();
+        ensureSchema(function (schemaErr) {
+            if (schemaErr) return done(schemaErr);
+            done();
         });
     });
 }
