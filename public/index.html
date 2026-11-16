@@ -632,26 +632,26 @@
                             <h5 class="mb-3">Contact Info</h5>
                             <dl class="mb-0">
                                 <dt>Email</dt>
-                                <dd><a href="mailto:hasandeep021@gmail.com">hasandeep021@gmail.com</a></dd>
+                                <dd><a class="pp-mail-link" href="mailto:officialPulsePoint.team@gmail.com">officialPulsePoint.team@gmail.com</a></dd>
                                 <dt>Phone</dt>
                                 <dd><a href="tel:+919465819078">+91 9465819078</a></dd>
                             </dl>
                             <hr>
                             <h5 class="mb-3">Send a Message</h5>
-                            <form>
+                            <form id="contactForm" novalidate>
                                 <div class="mb-3">
                                     <label class="form-label" for="contactName">Name</label>
-                                    <input type="text" class="form-control" id="contactName" placeholder="Your name" autocomplete="name">
+                                    <input type="text" class="form-control" id="contactName" name="name" placeholder="Your name" autocomplete="name" maxlength="80" required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label" for="contactEmail">Email</label>
-                                    <input type="email" class="form-control" id="contactEmail" placeholder="you@example.com" autocomplete="email">
+                                    <input type="email" class="form-control" id="contactEmail" name="email" placeholder="you@example.com" autocomplete="email" maxlength="120" required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label" for="contactMsg">Message</label>
-                                    <textarea class="form-control" id="contactMsg" rows="4" placeholder="How can we help?"></textarea>
+                                    <textarea class="form-control" id="contactMsg" name="message" rows="4" placeholder="How can we help?" maxlength="3000" required></textarea>
                                 </div>
-                                <button type="submit" class="btn btn-primary w-100">Send</button>
+                                <button type="submit" class="btn btn-primary w-100" id="contactSend">Send</button>
                             </form>
                         </div>
                     </div>
@@ -683,7 +683,7 @@
                 <div class="col-6 col-lg-3">
                     <h6>Contact</h6>
                     <ul>
-                        <li><a href="mailto:hasandeep021@gmail.com">hasandeep021@gmail.com</a></li>
+                        <li><a class="pp-mail-link" href="mailto:officialPulsePoint.team@gmail.com">officialPulsePoint.team@gmail.com</a></li>
                         <li><a href="tel:+919465819078">+91 9465819078</a></li>
                     </ul>
                 </div>
@@ -1261,6 +1261,77 @@
             .catch(function () { /* keep static fallback */ });
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+</script>
+<script id="pp-contact">
+(function () {
+    'use strict';
+    var TEAM = 'officialPulsePoint.team@gmail.com';
+
+    // ---- Email links open a compose window ----
+    // Phones: the normal mailto: link opens the mail app. Computers: many have no mail app set up,
+    // so open Gmail's compose window in a new tab instead (falls back to mailto: if blocked).
+    var isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    document.querySelectorAll('a.pp-mail-link').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+            if (isMobile) return;
+            e.preventDefault();
+            var url = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(TEAM);
+            var w = window.open(url, '_blank', 'noopener');
+            if (!w) window.location.href = 'mailto:' + TEAM;
+        });
+    });
+
+    // ---- Send-a-message form ----
+    var form = document.getElementById('contactForm');
+    if (!form) return;
+    var btn = document.getElementById('contactSend');
+    var notify = function (msg, ok) { if (window.ppToast) window.ppToast(msg, ok); else alert(msg); };
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var name = form.elements.name.value.trim();
+        var email = form.elements.email.value.trim();
+        var message = form.elements.message.value.trim();
+
+        if (!name) { notify('Please enter your name.', false); form.elements.name.focus(); return; }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { notify('Please enter a valid email address.', false); form.elements.email.focus(); return; }
+        if (!message) { notify('Please write a message.', false); form.elements.message.focus(); return; }
+
+        var label = btn.textContent;
+        btn.disabled = true; btn.textContent = 'Sending...';
+        // FormSubmit.co: free, no account or password. It emails the form to the team address.
+        fetch('https://formsubmit.co/ajax/' + TEAM, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({
+                _subject: 'Complaint from ' + name,   // name is used as the subject
+                _template: 'table',
+                _captcha: 'false',
+                name: name,
+                email: email,                         // sender's address (used for Reply)
+                message: message
+            })
+        })
+        .then(function (r) {
+            return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, data: d }; });
+        })
+        .then(function (res) {
+            var d = res.data || {};
+            var success = res.ok && (d.success === true || d.success === 'true');
+            if (success) {
+                form.reset();
+                notify('Message sent successfully! We will get back to you soon.', true);
+            } else if (/activat/i.test(String(d.message || ''))) {
+                // first-ever submission: FormSubmit emails the team inbox a one-time "Activate" link
+                notify('One-time setup: open the activation email sent to ' + TEAM + ', click Activate, then send again.', false);
+            } else {
+                notify(d.message || 'Could not send your message. Please try again.', false);
+            }
+        })
+        .catch(function () { notify('Network error. Please check your connection and try again.', false); })
+        .then(function () { btn.disabled = false; btn.textContent = label; });
+    });
 })();
 </script>
 </body>
