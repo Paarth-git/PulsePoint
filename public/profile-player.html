@@ -776,7 +776,7 @@
             </div>
             <div class="col-12 pp-actions">
                 <button type="submit" class="btn btn-primary" id="submit" name="submit">Submit</button>
-                <button type="submit" class="btn btn-primary" id="update" name="update" value="Update" formaction="/update-user">UPDATE</button>
+                <button type="submit" class="btn btn-primary" id="update" name="update" value="Update" formaction="/update-user" style="display:none">UPDATE</button>
             </div>
             <div class="col-12">
                 <div class="form-status" id="detailsStatus" role="status" aria-live="polite"></div>
@@ -993,6 +993,10 @@
                     .removeClass("success error")
                     .addClass(success ? "success" : "error");
             }
+            function setFormMode(hasSavedDetails) {
+                $("#submit").toggle(!hasSavedDetails);
+                $("#update").toggle(hasSavedDetails);
+            }
             function renderSports() {
                 $("#games").val(selectedSports.join(", "));
                 $("#selectedSports").html(selectedSports.map(function (sport) {
@@ -1040,9 +1044,13 @@
                 $("#picurl").prop("src", picurl1 && picurl1 !== "nopic.jpg" ? picurl1 : PP_PLACEHOLDER);
                 $("#picurl2").prop("src", picurl2 && picurl2 !== "nopic.jpg" ? picurl2 : PP_PLACEHOLDER);
                 $("#hdn").val(picurl1);
+                setFormMode(true);
                 showDetailsStatus("Saved details loaded. You can edit and update them anytime.", true);
             }).fail(function (err) {
-                if (err.status === 404) showDetailsStatus("No saved details yet. Complete the form to create your profile.", true);
+                if (err.status === 404) {
+                    setFormMode(false);
+                    showDetailsStatus("No saved details yet. Complete the form to create your profile.", true);
+                }
                 else showDetailsStatus(err.responseText || "Could not load your saved details.", false);
             });
 
@@ -1062,6 +1070,7 @@
                         });
                     })
                     .then(function (message) {
+                        if (endpoint === "/do_player-details") setFormMode(true);
                         showDetailsStatus("✓ " + message, true);
                     })
                     .catch(function (error) {
