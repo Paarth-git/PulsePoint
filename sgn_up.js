@@ -50,19 +50,22 @@ if (mysqlUrl) {
 var dbConfig = {
     // MYSQL_PUBLIC_* is required when the app is hosted outside Railway
     // (for example on Render); MYSQLHOST is Railway's private-network host.
-    host: process.env.MYSQL_PUBLIC_HOST || process.env.MYSQLHOST || urlConfig.host || process.env.DB_HOST || "127.0.0.1",
+    host: process.env.MYSQL_PUBLIC_HOST || process.env.MYSQLHOST || process.env.MYSQL_HOST ||
+        urlConfig.host || process.env.DB_HOST || "127.0.0.1",
     user: process.env.MYSQLUSER || urlConfig.user || process.env.DB_USER || "root",
     password: process.env.MYSQLPASSWORD || urlConfig.password || process.env.DB_PASSWORD || "",
-    port: Number(process.env.MYSQL_PUBLIC_PORT || process.env.MYSQLPORT) || urlConfig.port || Number(process.env.DB_PORT) || 3306,
+    port: Number(process.env.MYSQL_PUBLIC_PORT || process.env.MYSQLPORT || process.env.MYSQL_PORT) ||
+        urlConfig.port || Number(process.env.DB_PORT) || 3306,
     connectTimeout: 10000
 };
 var databaseName = process.env.DB_NAME || process.env.MYSQLDATABASE || urlConfig.database || "sports_portal";
 console.log("Database target:", dbConfig.host + ":" + dbConfig.port,
     "| credentials:", dbConfig.user ? "configured" : "missing",
     "| source:", mysqlUrl ? "connection URL" :
-        (process.env.MYSQL_PUBLIC_HOST || process.env.MYSQLHOST ? "MYSQL variables" : "DB variables/default"));
+        (process.env.MYSQL_PUBLIC_HOST || process.env.MYSQLHOST || process.env.MYSQL_HOST ? "MYSQL variables" : "DB variables/default"));
 if (process.env.NODE_ENV === "production" &&
-    !process.env.MYSQL_PUBLIC_HOST && !process.env.MYSQLHOST && !process.env.MYSQL_PUBLIC_URL &&
+    !process.env.MYSQL_PUBLIC_HOST && !process.env.MYSQLHOST && !process.env.MYSQL_HOST &&
+    !process.env.MYSQL_PUBLIC_URL &&
     !process.env.MYSQL_URL && !process.env.DATABASE_URL && !process.env.DB_HOST) {
     console.log("Database configuration missing: attach the Railway environment group to this Render service.");
 }
@@ -184,9 +187,19 @@ function ensureSchema(done) {
         var email = String(process.env.ADMIN_EMAIL || "").trim().toLowerCase();
         var username = String(process.env.ADMIN_USERNAME || "").trim();
         var password = String(process.env.ADMIN_PASSWORD || "");
-        if (!email || !username || !password) return doneAdmin();
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !passwordIsValid(password))
-            return doneAdmin(new Error("ADMIN_EMAIL, ADMIN_USERNAME or ADMIN_PASSWORD is invalid."));
+        if (!email && !username && !password) return doneAdmin();
+        if (!email || !username || !password) {
+            console.log("Admin bootstrap skipped: ADMIN_EMAIL, ADMIN_USERNAME and ADMIN_PASSWORD must all be set.");
+            return doneAdmin();
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+            console.log("Admin bootstrap skipped: ADMIN_EMAIL is invalid.");
+            return doneAdmin();
+        }
+        if (!passwordIsValid(password)) {
+            console.log("Admin bootstrap skipped: ADMIN_PASSWORD must be 6-20 characters with a number and special character.");
+            return doneAdmin();
+        }
         pool.query(
             "INSERT IGNORE INTO users2025(txtEmail, username, txtPwd, comboUser, status, dos) VALUES(?,?,?,?,1,CURDATE())",
             [email, username, hashPassword(password), "Admin"], doneAdmin);
@@ -919,7 +932,7 @@ app.use(function (err, req, resp, next) {
 initializeDatabase(function (err) {
     if (err) {
         console.log("Database startup failed:", err.code, err.message);
-        console.log(">>> Start MySQL and check DB_HOST/DB_USER/DB_PASSWORD/DB_NAME.");
+        console.log(">>> Check database credentials, schema permissions, and ADMIN_* configuration.");
         return;
     }
     var cashfree = mountCashfree(app, pool, { dbFail: dbFail, ensureColumn: ensureColumn });
