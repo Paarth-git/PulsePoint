@@ -704,9 +704,9 @@
                         <button type="button" class="btn btn-outline-secondary" disabled ng-if="!registered[selectedTournament.rid] && isClosed(selectedTournament)">
                             <i class="fa-solid fa-lock me-1"></i> Registration Closed
                         </button>
-                        <button type="button" class="btn btn-outline-secondary" disabled ng-if="!registered[selectedTournament.rid] && !isClosed(selectedTournament) && selectedTournament.fee > 0">
-                            <i class="fa-solid fa-ban me-1"></i> Paid registration unavailable
-                        </button>
+                        <a class="btn btn-primary" ng-if="!registered[selectedTournament.rid] && !isClosed(selectedTournament) && selectedTournament.fee > 0" ng-href="/payment?rid={{ selectedTournament.rid }}">
+                            <i class="fa-solid fa-credit-card me-1"></i> Register &amp; Pay · ₹{{ selectedTournament.fee }}
+                        </a>
                         <button type="button" class="btn btn-primary" ng-if="!registered[selectedTournament.rid] && !isClosed(selectedTournament) && selectedTournament.fee <= 0" ng-click="register(selectedTournament)">
                             <i class="fa-solid fa-ticket me-1"></i> Register · Free
                         </button>
@@ -939,7 +939,7 @@
                 return last < new Date();
             };
 
-            // Only free registrations are available while online payments are disabled.
+            // Free tournaments register here; paid ones go through /payment (Cashfree).
             $scope.register = function (t) {
                 if (!t || !t.rid || Number(t.fee) > 0) return;
                 var email = null;
