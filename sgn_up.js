@@ -268,6 +268,9 @@ app.get("/tournament-finder", function (req, resp) {
 app.get("/my-registrations", function (req, resp) {
     resp.sendFile(path.join(__dirname, "public", "player-registrations.html"));
 });
+app.get("/payment", function (req, resp) {
+    resp.sendFile(path.join(__dirname, "public", "payment.html"));
+});
 
 // ---------------------------------------------------------------- sports media (hero slideshow + welcome clip)
 // Drop real sports clips/images into:
