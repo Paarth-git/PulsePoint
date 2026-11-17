@@ -47,9 +47,9 @@ module.exports = function mountCashfree(app, pool, helpers) {
             },
             body: body ? JSON.stringify(body) : undefined
         });
-        var json = null;
-        try { json = await r.json(); } catch (e) { }
-        return { ok: r.ok, status: r.status, json: json || {} };
+        var raw = "", json = null;
+        try { raw = await r.text(); json = JSON.parse(raw); } catch (e) { }
+        return { ok: r.ok, status: r.status, json: json || {}, raw: raw };
     }
 
     function md5(s) { return crypto.createHash("md5").update(String(s).toLowerCase()).digest("hex"); }
@@ -241,7 +241,7 @@ module.exports = function mountCashfree(app, pool, helpers) {
                 order_splits: [{ vendor_id: t.cf_vendor_id, amount: vendorAmount }]
             });
             if (!r.ok || !r.json.payment_session_id) {
-                console.log("Cashfree create order failed:", r.status, r.json && r.json.code, r.json && r.json.message);
+                console.log("Cashfree create order failed:", r.status, r.json && r.json.code, r.json && r.json.message, "| raw:", String(r.raw || "").slice(0, 400), "| return_url:", meta.return_url);
                 return send(resp, 502, "error", "Could not start the payment. Please try again.");
             }
             await db.query(
