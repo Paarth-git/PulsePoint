@@ -686,12 +686,12 @@
                     </div>
                     <div class="modal-body">
                         <p><strong>Organizer Email:</strong> {{ selectedTournament.emailid }}</p>
-                        <p><strong>Date:</strong> {{ selectedTournament.doe | date:'fullDate' }}</p>
+                        <p><strong>Date:</strong> {{ selectedTournament.doe | date:'fullDate':'UTC' }}</p>
                         <p><strong>Venue:</strong> {{ selectedTournament.Address }}</p>
                         <p><strong>Time:</strong> {{ selectedTournament.toe }}</p>
                         <p><strong>Age Group:</strong> {{ selectedTournament.minage }} - {{ selectedTournament.maxage }}</p>
                         <p><strong>Contact:</strong> {{ selectedTournament.contact }}</p>
-                        <p><strong>Last Date to Apply:</strong> {{ selectedTournament.lastDate | date:'fullDate' }}</p>
+                        <p><strong>Last Date to Apply:</strong> {{ selectedTournament.lastDate | date:'fullDate':'UTC' }}</p>
                         <p><strong>Fee:</strong> ₹{{ selectedTournament.fee }}</p>
                         <p><strong>Prize Money:</strong> ₹{{ selectedTournament.pMny }}</p>
                         <p><strong>Other Info:</strong> {{ selectedTournament.otherinfo }}</p>

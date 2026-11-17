@@ -662,7 +662,7 @@
                         <tr ng-repeat="obj in jsonArray">
                             <td>{{$index+1}}</td>
                             <td>{{obj.eventname}}</td>
-                            <td>{{obj.doe}}</td>
+                            <td>{{obj.doe | date:'dd MMM yyyy':'UTC'}}</td>
                             <td><button type="button" class="btn btn-danger btn-sm" ng-click="doDelete(obj.rid)">Remove</button></td>
                         </tr>
                     </tbody>
