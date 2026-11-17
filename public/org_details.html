@@ -753,8 +753,8 @@
                 <textarea class="form-control" id="otherinfo" rows="5" name="otherinfo"></textarea>
             </div>
             <div class="col-12 pp-actions">
-                <button type="submit" class="btn btn-primary" id="register" name="register">Save Details</button>
-                <button type="submit" class="btn btn-primary" id="update" name="update" value="Update" formaction="/update-user">UPDATE</button>
+                <button type="submit" class="btn btn-primary" id="register" name="register" hidden>Save Details</button>
+                <button type="submit" class="btn btn-primary" id="update" name="update" value="Update" formaction="/update-user" hidden>Update Details</button>
             </div>
             <div class="col-12">
                 <div class="form-status" id="detailsStatus" role="status" aria-live="polite"></div>
@@ -985,14 +985,23 @@
                 renderSports();
             });
 
+            // New organizations see only "Save Details"; organizations with saved details see only "Update Details".
+            function setSavedMode(hasSaved) {
+                $("#register").prop("hidden", !!hasSaved);
+                $("#update").prop("hidden", !hasSaved);
+            }
+
             function loadOrganizationDetails() {
                 var email = localStorage.getItem("loggedInUserEmail") || "";
                 $("#emailid").val(email);
                 if (!email) {
+                    setSavedMode(false);
                     showDetailsStatus("Sign in as an organizer to load your default organization details.", false);
                     return;
                 }
                 $.get("/get-one", { emailid: email }).then(function (response) {
+                    if (!response || !response[0]) { setSavedMode(false); return; }
+                    setSavedMode(true);
                     let orgname = response[0].orgname;
                     let regnumber = response[0].regnumber;
                     let address = response[0].address;
@@ -1027,6 +1036,7 @@
 
                     showDetailsStatus("Saved details loaded. You can edit and update them.", true);
                 }).fail(function (err) {
+                    setSavedMode(false);
                     if (err.status === 404) showDetailsStatus("No saved organization details yet. Complete the form to create them.", true);
                     else showDetailsStatus(err.responseText || "Could not load organization details.", false);
                 });
@@ -1050,6 +1060,7 @@
                     })
                     .then(function (message) {
                         showDetailsStatus("✓ " + message, true);
+                        setSavedMode(true);
                     })
                     .catch(function (error) {
                         showDetailsStatus(error.message || "Unable to save details.", false);

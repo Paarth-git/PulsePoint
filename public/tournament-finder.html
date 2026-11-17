@@ -979,8 +979,13 @@
                         email: email || ""
                     }
                 }).then(function (response) {
-                    $scope.tournaments = response.data;
+                    $scope.tournaments = Array.isArray(response.data) ? response.data : [];
                     $scope.loadRegistered();
+                    if (!$scope.tournaments.length && window.ppToast)
+                        window.ppToast('No tournaments available according to your preferences.', false);
+                }, function () {
+                    $scope.tournaments = [];
+                    if (window.ppToast) window.ppToast('Could not load tournaments. Please try again.', false);
                 });
             };
 

@@ -805,7 +805,8 @@
                             <div class="col-sm-6"><label class="form-label" for="pfPan">PAN</label><input class="form-control text-uppercase" id="pfPan" maxlength="10" placeholder="ABCDE1234F" required></div>
                         </div>
                         <div class="mb-1"><label class="form-label" for="pfType">Account type</label>
-                            <select class="form-select" id="pfType"><option value="INDIVIDUAL">Individual</option><option value="BUSINESS">Business / Club / Academy</option></select></div>
+                            <select class="form-select" id="pfType"><option value="INDIVIDUAL">Individual</option><option value="BUSINESS">Business / Club / Academy</option></select>
+                            <div class="form-text" id="pfTypeHint" hidden>Personal PAN detected, so this is set to Individual automatically.</div></div>
                         <div class="form-status mt-3" id="payoutStatusMsg" role="status" aria-live="polite"></div>
                     </form>
                 </div>
@@ -1022,18 +1023,28 @@
             paintRows(!q ? all : all.filter(function (r) { return (r.player_name + ' ' + r.player_email + ' ' + r.eventname).toLowerCase().indexOf(q) > -1; }));
         });
 
+        // A PAN whose 4th letter is "P" is a personal PAN: it must be submitted as an Individual account.
+        function syncPanType() {
+            var personal = $('pfPan').value.trim().toUpperCase().charAt(3) === 'P';
+            if (personal) $('pfType').value = 'INDIVIDUAL';
+            $('pfType').disabled = personal;
+            $('pfTypeHint').hidden = !personal;
+        }
+        $('pfPan').addEventListener('input', syncPanType);
+
         // ---- one-time payout setup (organizer never sees or types a Vendor ID)
         $('payoutForm').addEventListener('submit', function (e) {
             e.preventDefault();
             var msg = $('payoutStatusMsg'), btn = $('payoutSubmit');
             var body = { emailid: email, phone: $('pfPhone').value, contactEmail: $('pfEmail').value, accountHolder: $('pfHolder').value, accountNumber: $('pfAcct').value, ifsc: $('pfIfsc').value, pan: $('pfPan').value, accountType: $('pfType').value };
+            syncPanType();
             if ($('pfAcct').value !== $('pfAcct2').value) { msg.className = 'form-status error'; msg.textContent = 'Account numbers do not match.'; return; }
             btn.disabled = true; msg.className = 'form-status'; msg.textContent = 'Please wait, verifying with Cashfree…';
             fetch('/api/org/payout-setup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
                 .then(function (r) { return r.json(); })
                 .then(function (j) {
                     if (j.status !== 'success') throw new Error(j.message || 'Could not set up payouts.');
-                    $('payoutForm').reset(); msg.textContent = '';
+                    $('payoutForm').reset(); syncPanType(); msg.textContent = '';
                     bootstrap.Modal.getInstance($('payoutModal')).hide();
                     if (window.ppToast) window.ppToast(j.message, j.status === 'success');
                     loadStatus();

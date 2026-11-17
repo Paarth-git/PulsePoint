@@ -87,7 +87,9 @@ module.exports = function mountCashfree(app, pool, helpers) {
         var [rows] = await db.query("SELECT comboUser, status FROM users2025 WHERE txtEmail = ? LIMIT 1", [email]);
         return rows[0] || null;
     }
-    var FAILED_RE = /INVALID|REJECT|FAIL|BLOCK|ERROR/i;
+    // ACTION_REQUIRED is what Cashfree sets when a KYC document (e.g. PAN) fails verification. Without it here the
+    // organizer was stuck on "verification in progress" and every retry was refused with 409.
+    var FAILED_RE = /INVALID|REJECT|FAIL|BLOCK|ERROR|ACTION_REQUIRED|DELETED/i;
     function payoutState(org) {
         if (!org) return "PROFILE_REQUIRED";
         var s = org.cf_vendor_status;
@@ -131,7 +133,11 @@ module.exports = function mountCashfree(app, pool, helpers) {
             if (holder.length < 3 || holder.length > 100) return send(resp, 400, "error", "Enter the account holder name as on the bank account.");
             if (!/^\d{9,18}$/.test(acct)) return send(resp, 400, "error", "Enter a valid bank account number (9-18 digits).");
             if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) return send(resp, 400, "error", "Enter a valid IFSC code.");
-            if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan)) return send(resp, 400, "error", "Enter a valid PAN.");
+            if (!/^[A-Z]{3}[PCHFATBLJG][A-Z][0-9]{4}[A-Z]$/.test(pan)) return send(resp, 400, "error", "Enter a valid PAN (e.g. ABCDE1234F).");
+            // The 4th letter of a PAN is its holder type; "P" always means a personal (individual) PAN.
+            // Cashfree checks the PAN against the account type, so a personal PAN sent as BUSINESS is rejected with
+            // "Invalid pan provided" and also raises a GSTIN request. Individual PANs are therefore always sent as INDIVIDUAL.
+            if (pan.charAt(3) === "P") type = "INDIVIDUAL";
             if (!/^[6-9]\d{9}$/.test(phone)) return send(resp, 400, "error", "Enter a valid 10-digit mobile number for payout notifications.");
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(contactEmail) || contactEmail.length > 100) return send(resp, 400, "error", "Enter a valid email address for payout notifications.");
 
