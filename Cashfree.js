@@ -38,6 +38,32 @@ module.exports = function mountCashfree(app, pool, helpers) {
 
     function configured() { return !!(CLIENT_ID && CLIENT_SECRET); }
 
+    // ---- startup diagnostics ---------------------------------------------------------------
+    // Cashfree sandbox (test) client ids start with "TEST"; production ids do not.
+    var looksTestKey = /^TEST/i.test(CLIENT_ID);
+    if (configured() && MODE === "production" && looksTestKey)
+        console.log("Cashfree WARNING: CASHFREE_ENV=production but CASHFREE_CLIENT_ID looks like a TEST key. Use live keys or set CASHFREE_ENV=sandbox.");
+    if (configured() && MODE === "sandbox" && !looksTestKey)
+        console.log("Cashfree WARNING: CASHFREE_ENV=sandbox but CASHFREE_CLIENT_ID does not look like a TEST key. Sandbox needs test keys.");
+
+    var GATEWAY_INACTIVE_HELP =
+        "Cashfree says the Payment Gateway product is not activated for this account (" + MODE + " mode). " +
+        "Fix: (1) in the Cashfree dashboard open Payment Gateway and finish activation/KYC for LIVE mode, or " +
+        "(2) set CASHFREE_ENV=sandbox with the TEST keys from Developers > API Keys (Payment Gateway), or " +
+        "(3) make sure the keys are Payment Gateway keys (not Payouts / Verification Suite keys) and belong to the same mode as CASHFREE_ENV.";
+    function isGatewayInactive(r) { return !!(r && r.json && r.json.code === "payment_gateway_inactive"); }
+
+    // A lookup of a non-existent order returns 404 order_not_found when PG is active, and
+    // payment_gateway_inactive when it is not. This reports it at boot instead of on a player's payment.
+    if (configured()) setTimeout(function () {
+        cf("GET", "/orders/pp_healthcheck_" + Date.now()).then(function (r) {
+            if (isGatewayInactive(r)) console.log("Cashfree STARTUP CHECK FAILED: " + GATEWAY_INACTIVE_HELP);
+            else if (r.status === 401 || r.status === 403 || (r.json && /authentication/i.test(r.json.type || r.json.code || "")))
+                console.log("Cashfree STARTUP CHECK FAILED: credentials rejected (" + r.status + " " + (r.json.code || "") + "). Check CASHFREE_CLIENT_ID / CASHFREE_CLIENT_SECRET match CASHFREE_ENV=" + MODE + ".");
+            else console.log("Cashfree startup check OK (" + MODE + ", Payment Gateway reachable).");
+        }).catch(function (e) { console.log("Cashfree startup check could not run:", e.message); });
+    }, 3000);
+
     async function cf(method, path, body) {
         var r = await fetch(BASE + path, {
             method: method,
@@ -242,6 +268,10 @@ module.exports = function mountCashfree(app, pool, helpers) {
             });
             if (!r.ok || !r.json.payment_session_id) {
                 console.log("Cashfree create order failed:", r.status, r.json && r.json.code, r.json && r.json.message, "| raw:", String(r.raw || "").slice(0, 400), "| return_url:", meta.return_url);
+                if (isGatewayInactive(r)) {
+                    console.log("Cashfree ACTION NEEDED: " + GATEWAY_INACTIVE_HELP);
+                    return send(resp, 503, "error", "Online payments are temporarily unavailable. Please contact the organizer or try again later.");
+                }
                 return send(resp, 502, "error", "Could not start the payment. Please try again.");
             }
             await db.query(
